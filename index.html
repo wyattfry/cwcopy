@@ -363,7 +363,7 @@ function triesLeft(){if(+S.tries===0)return Infinity;return Math.max(0,(+S.tries
 $('submit').addEventListener('click',function(){if(!sess||this.disabled)return;var it=sess.items[sess.i],g=clean($('ans').value);
   if(sess.wait)return;if(!g){if(!cdT)$('feedback').textContent='Type your answer first, or press Skip.';return;}
   cancelCd();sess.guesses.push(g);var btn=this;
-  if(g===it){clearTimeout(againT);chime('right');fadeYaySoon();$('feedback').innerHTML=yayHTML()+curMean();btn.disabled=true;later(1200,function(){btn.disabled=false;if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};record(true);});return;}
+  if(g===it){stopPlay();chime('right');fadeYaySoon();$('feedback').innerHTML=yayHTML()+curMean();btn.disabled=true;later(1200,function(){btn.disabled=false;if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};record(true);});return;}
   noteMistake(it,g);chime('wrong');
   if(triesLeft()>0){var tl=triesLeft();$('feedback').innerHTML='<span class="no">✗ Not quite.</span> '+(tl===Infinity?(sess.mode==='read'?'Look at the code again and try again.':'Listen again and try again.'):'Try again ('+tl+' '+(tl===1?'try':'tries')+' left).');$('ans').value='';try{$('ans').focus();}catch(e){}if(sess.mode==='listen'&&S.autoplay){stopPlay();var mine=sess,r=sess.i;setTimeout(function(){if(sess===mine&&sess.i===r)autoPlay();},700);}return;}
   $('feedback').innerHTML='<span class="no">✗ It was '+esc(it)+'</span>'+curMean();btn.disabled=true;later(1500,function(){btn.disabled=false;record(false);});});

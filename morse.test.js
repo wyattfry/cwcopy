@@ -232,6 +232,15 @@ test('name: package is called cwcopy',()=>{eq(JSON.parse(require('fs').readFileS
 test('deploy: GitHub Pages workflow runs the tests before publishing index.html',()=>{const f=__dirname+'/.github/workflows/deploy-pages.yml';ok(require('fs').existsSync(f),'no workflow');const y=require('fs').readFileSync(f,'utf8');
   const testAt=y.indexOf('npm test'),uploadAt=y.indexOf('upload-pages-artifact');ok(testAt>0&&uploadAt>testAt,'tests must run before upload');ok(/cp index\.html site\//.test(y),'index.html not published');ok(/branches: \[main\]/.test(y),'not on push to main');});
 
+/* ---------- right answer stops the message ---------- */
+// starts a game and stops 300ms into the first play; returns the oscillators of that play
+function midPlay(a){a.click('start');a.advance(2600);const n0=__oscs.length;a.advance(400);return __oscs.slice(n0);}
+test('stop: a right answer cuts off the word that is playing',()=>{const a=boot();const play=midPlay(a);ok(play.length>2);a.answer(a.word());play.forEach(o=>ok(o.cut!==undefined,'still playing'));});
+test('stop: a right answer turns the lamp off',()=>{const a=boot();midPlay(a);a.answer(a.word());ok(!a.E.lamp.classes.has('on'));a.advance(500);ok(!a.E.lamp.classes.has('on'),'lamp came back');});
+test('stop: no more plays after a right answer',()=>{const a=boot();midPlay(a);a.answer(a.word());a.advance(1000);eq(a.plays(),'PLAYED 1 TIME');});
+test('stop: the right-answer chime is not cut off',()=>{const a=boot();midPlay(a);const n0=__oscs.length;a.answer(a.word());const c=__oscs.slice(n0);ok(c.length===3);a.advance(1000);c.forEach(o=>eq(o.cut,undefined));});
+test('stop: partner they got it cuts off the word too',()=>{const a=boot();a.mode('partner');const play=midPlay(a);a.click('gotit');play.forEach(o=>ok(o.cut!==undefined));});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
