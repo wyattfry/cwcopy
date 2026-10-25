@@ -11,7 +11,9 @@ function boot(saved){
   const mk=id=>{let html='';const o={id,value:'',checked:false,hidden:false,disabled:false,dataset:{},placeholder:'',
     get innerHTML(){return html},set innerHTML(v){html=String(v)},get textContent(){return html.replace(/<[^>]*>/g,'')},set textContent(v){html=String(v)},
     classList:{add:noop,remove:noop,toggle:noop},setAttribute:noop,removeAttribute:noop,focus:noop,setPointerCapture:noop,insertBefore:noop,
-    querySelector(sel){if(sel==='.cd'&&/class="cd"/.test(html))return {remove(){html=html.replace(/<span class="cd">.*?<\/span>/,'')}};return sel==='.cd'?null:mk('q');},
+    querySelector(sel){const m=/^\.([\w-]+)$/.exec(sel),f=m&&new RegExp('<span class="([^"]*\\b'+m[1]+'\\b[^"]*)">([^<]*)</span>').exec(html);
+      if(!f)return ['.cd','.yay','.mean'].includes(sel)?null:mk('q');
+      return {remove(){html=html.replace(f[0],'')},classList:{add(c){html=html.replace(f[0],'<span class="'+f[1]+' '+c+'">'+f[2]+'</span>')},remove:noop,toggle:noop}};},
     click(){H[id]&&H[id].click&&H[id].click.call(o,{})},insertAdjacentHTML(pos,h){html+=h},
     addEventListener(t,f){H[id]=H[id]||{};const old=H[id][t];H[id][t]=old?function(e){old.call(this,e);f.call(this,e)}:f}};return o;};
   const el=id=>E[id]||(E[id]=mk(id));
@@ -19,8 +21,10 @@ function boot(saved){
   for(const m of PAGE.matchAll(/<input type="range" id="(\w+)" min="(-?\d+)" max="(-?\d+)"/g)){const e=el(m[1]);e.min=m[2];e.max=m[3];}
   const DH={};global.document={getElementById:el,addEventListener(type,f){const old=DH[type];DH[type]=old?function(e){old(e);f(e)}:f},querySelectorAll:()=>[],documentElement:{setAttribute:noop,removeAttribute:noop},activeElement:{tagName:'BODY'}};
   function AC(){this.currentTime=0;this.destination={};this.state='running';global.__ac=this;}
-  AC.prototype.createOscillator=()=>({frequency:{},connect:noop,start:noop,stop:noop});
-  AC.prototype.createGain=()=>({gain:{value:0,setValueAtTime:noop,linearRampToValueAtTime:noop},connect:noop});AC.prototype.resume=function(){this.resumed=true;this.state='running';};
+  // every oscillator and gain is recorded (in pairs) so tests can check the sounds
+  global.__oscs=[];global.__gains=[];
+  AC.prototype.createOscillator=function(){const o={type:'sine',frequency:{},connect:noop,start(t){this.t=t},stop(t){this.end=t;this.stopped=true}};__oscs.push(o);return o};
+  AC.prototype.createGain=function(){const calls=[];const g={gain:{value:0,calls,setValueAtTime(v,t){calls.push(['set',v,t])},linearRampToValueAtTime(v,t){calls.push(['ramp',v,t])}},connect:noop};__gains.push(g);return g};AC.prototype.resume=function(){this.resumed=true;this.state='running';};
   global.window={AudioContext:AC,matchMedia:()=>({matches:false})};
   global.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=v}};
   Object.defineProperty(global,'performance',{value:{now:()=>now},configurable:true,writable:true});
