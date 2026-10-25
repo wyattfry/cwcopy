@@ -251,12 +251,13 @@ function play(text,slowFactor,joined){stopPlay();var a=ctx();slowFactor=slowFact
   var words=text.split(' ');
   words.forEach(function(w,wi){w.split('').forEach(function(ch,ci){var code=MORSE[ch]||'';code.split('').forEach(function(sym,si){beep(sym==='.'?unit:unit*3);if(si<code.length-1)t+=unit;});if(ci<w.length-1)t+=joined?unit:unit*3+extra;});if(wi<words.length-1)t+=unit*7+extra*2;});
   timers.o=oscs;playing=timers;return (t-start)*1000;}
-/* answer sounds: quiet radio-style notes, one at a time, quick attack. notes are [semitones from your pitch, seconds, gap after] */
-var SOUNDS={right:{type:'triangle',notes:[[0,.09],[4,.09],[7,.18]]},
-  wrong:{type:'square',vol:.5,notes:[[-5,.12],[-6,.26]]},
-  done:{type:'triangle',notes:[[0,.09],[4,.09],[7,.09],[12,.18,.12],[7,.09],[12,.36]]}};
-function chime(name){var a=ctx(),c=SOUNDS[name];if(!a||!c)return;var t=a.currentTime+.03,peak=S.vol/100*.18*(c.vol||1);
-  c.notes.forEach(function(n){var o=a.createOscillator(),g=a.createGain(),len=n[1];o.type=c.type;o.frequency.value=S.pitch*Math.pow(2,n[0]/12);
+/* answer sounds: quiet sine notes, one at a time, all with the same quick-attack envelope.
+   each note is [semitones from your pitch, seconds, gap after] */
+var SOUNDS={right:[[0,.09],[4,.09],[7,.18]],
+  wrong:[[-5,.12],[-6,.26]],
+  done:[[0,.09],[4,.09],[7,.09],[12,.18,.12],[7,.09],[12,.36]]};
+function chime(name){var a=ctx(),notes=SOUNDS[name];if(!a||!notes)return;var t=a.currentTime+.03,peak=S.vol/100*.18;
+  notes.forEach(function(n){var o=a.createOscillator(),g=a.createGain(),len=n[1];o.type='sine';o.frequency.value=S.pitch*Math.pow(2,n[0]/12);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.006);g.gain.setValueAtTime(peak,t+len-.02);g.gain.linearRampToValueAtTime(0,t+len);
     o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len);t+=len+(n[2]||.015);});}
 
