@@ -236,7 +236,8 @@ $('themebtn').addEventListener('click',function(){var dark=S.theme?S.theme==='da
 
 /* ---------- audio ---------- */
 var AC=null,playing=null;
-function ctx(){if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C();}if(AC&&AC.state==='suspended')AC.resume();return AC;}
+function ctx(){if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C();}if(AC&&AC.state!=='running'&&AC.resume)AC.resume();return AC;}
+document.addEventListener('pointerdown',function(){if(AC&&AC.state!=='running'&&AC.resume)AC.resume();},true);
 function toCode(text,k){if(k==='prosigns')return text.split('').map(function(ch){return MORSE[ch]||'';}).join('');return text.split(' ').map(function(w){return w.split('').map(function(ch){return MORSE[ch]||'';}).filter(Boolean).join(' ');}).join(' / ');}
 function stopPlay(){if(typeof againT!=='undefined')clearTimeout(againT);if(typeof cdT!=='undefined'&&cdT){clearTimeout(cdT);cdT=null;}if(playing){playing.forEach(function(t){clearTimeout(t);});playing.o.forEach(function(o){try{o.stop();}catch(e){}});}playing=null;$('lamp').classList.remove('on');}
 /* plays text; slowFactor > 1 makes it slower; returns total ms */

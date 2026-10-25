@@ -14,17 +14,17 @@ function boot(saved){
     click(){H[id]&&H[id].click&&H[id].click.call(o,{})},insertAdjacentHTML(pos,h){html+=h},
     addEventListener(t,f){H[id]=H[id]||{};const old=H[id][t];H[id][t]=old?function(e){old.call(this,e);f.call(this,e)}:f}};return o;};
   const el=id=>E[id]||(E[id]=mk(id));
-  global.document={getElementById:el,addEventListener:noop,querySelectorAll:()=>[],documentElement:{setAttribute:noop,removeAttribute:noop},activeElement:{tagName:'BODY'}};
-  function AC(){this.currentTime=0;this.destination={};this.state='running';}
+  const DH={};global.document={getElementById:el,addEventListener(type,f){const old=DH[type];DH[type]=old?function(e){old(e);f(e)}:f},querySelectorAll:()=>[],documentElement:{setAttribute:noop,removeAttribute:noop},activeElement:{tagName:'BODY'}};
+  function AC(){this.currentTime=0;this.destination={};this.state='running';global.__ac=this;}
   AC.prototype.createOscillator=()=>({frequency:{},connect:noop,start:noop,stop:noop});
-  AC.prototype.createGain=()=>({gain:{value:0,setValueAtTime:noop,linearRampToValueAtTime:noop},connect:noop});AC.prototype.resume=noop;
+  AC.prototype.createGain=()=>({gain:{value:0,setValueAtTime:noop,linearRampToValueAtTime:noop},connect:noop});AC.prototype.resume=function(){this.resumed=true;this.state='running';};
   global.window={AudioContext:AC,matchMedia:()=>({matches:false})};
   global.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=v}};
   Object.defineProperty(global,'performance',{value:{now:()=>now},configurable:true,writable:true});
   global.setTimeout=(f,ms)=>{const id=++tid;timers.push({id,at:now+(ms||0),f});return id};
   global.clearTimeout=id=>{timers=timers.filter(t=>t.id!==id)};
   eval(SRC);
-  const app={E,H,M:window.__m,store,
+  const app={E,H,DH,M:window.__m,store,
     advance(ms){const end=now+ms;for(;;){timers.sort((a,b)=>a.at-b.at||a.id-b.id);const t=timers[0];if(!t||t.at>end)break;timers.shift();now=t.at;t.f();}now=end;},
     click(id,ev){H[id].click.call(E[id],ev||{})},
     mode(m){H.modes.click({target:{closest:()=>({dataset:{m}})}})},
@@ -169,6 +169,9 @@ test('send: after coming back, a quick tap is a dot (E)',()=>{const a=boot();a.t
   a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(50);a.H.key.pointerup();a.advance(1000);eq(a.E.senddec.textContent.slice(-1),'E');});
 test('page: every CSS color token used is defined',()=>{const html=require('fs').readFileSync(__dirname+'/morse-practice.html','utf8');const used=new Set([...html.matchAll(/var\((--[\w-]+)/g)].map(m=>m[1]));const defined=new Set([...html.matchAll(/(--[\w-]+)\s*:/g)].map(m=>m[1]));[...used].forEach(v=>ok(defined.has(v),'undefined '+v));});
 test('results: says per round, not per word',()=>{const a=boot();a.set('kind','letters');a.set('rounds',5);a.click('start');for(let i=0;i<5;i++){a.advance(LONG);a.click('skip');}ok(a.E.scorenote.textContent.includes('per round'));});
+test('audio: interrupted sound (iPad) is woken up when playing',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.state='interrupted';__ac.resumed=false;a.click('play');ok(__ac.resumed);});
+test('audio: any tap wakes up interrupted sound',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.state='interrupted';__ac.resumed=false;a.DH.pointerdown({});ok(__ac.resumed);});
+test('audio: running sound is left alone',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.resumed=false;a.click('play');ok(!__ac.resumed);});
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
