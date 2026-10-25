@@ -4,7 +4,7 @@ const fs=require('fs');
 // the app's code is the last <script> in the page
 const PAGE=fs.readFileSync(__dirname+'/index.html','utf8');
 const APP_JS=[...PAGE.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
-const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('function play(text,slowFactor,joined){','function play(text,slowFactor,joined){return window.__lastMs=play0.apply(this,arguments);}\nfunction play0(text,slowFactor,joined){');
+const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get WORDS(){return WORDS},get QSO_WORDS(){return typeof QSO_WORDS!=="undefined"?QSO_WORDS:[]},get PLACES(){return typeof PLACES!=="undefined"?PLACES:[]},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('function play(text,slowFactor,joined){','function play(text,slowFactor,joined){return window.__lastMs=play0.apply(this,arguments);}\nfunction play0(text,slowFactor,joined){');
 const noop=()=>{};
 function boot(saved){
   const E={},H={};let now=0,tid=0,timers=[];const store={};if(saved)store['morse-practice-v1']=JSON.stringify(saved);
@@ -278,6 +278,10 @@ test('steady: the game stage has a minimum height (desktop and phone)',()=>{ok(/
 test('steady: room is saved for the message, hint, code and guess lines',()=>{['#feedback','#hintline','#codebox','#guesslist'].forEach(s=>ok(/min-height:\d/.test(rule(CSS(),s)),s));});
 test('steady: phones save more room where text wraps',()=>{['#feedback','#codebox','#guesslist'].forEach(s=>ok(/min-height:\d/.test(rule(narrow(),s)),s));});
 test('steady: the code text shrinks on narrow screens',()=>{ok(/font-size:clamp\(/.test(rule(CSS(),'#codebox')),'no clamp');});
+
+/* ---------- word pool ---------- */
+test('words: no word is listed twice',()=>{const a=boot();const seen=new Set();a.M.WORDS.forEach(w=>{ok(!seen.has(w),'twice: '+w);seen.add(w);});});
+test('words: every word is plain letters, 2 to 10 long (the length slider range)',()=>{const a=boot();a.M.WORDS.forEach(w=>ok(/^[A-Z]{2,10}$/.test(w),'bad word '+w));});
 
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
