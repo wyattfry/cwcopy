@@ -10,6 +10,7 @@ function boot(saved){
   const E={},H={};let now=0,tid=0,timers=[];const store={};if(saved)store['morse-practice-v1']=JSON.stringify(saved);
   const mk=id=>{let html='';const o={id,value:'',checked:false,hidden:false,disabled:false,dataset:{},placeholder:'',
     get innerHTML(){return html},set innerHTML(v){html=String(v)},get textContent(){return html.replace(/<[^>]*>/g,'')},set textContent(v){html=String(v)},
+    style:{props:{},setProperty(k,v){this.props[k]=String(v)},removeProperty(k){delete this.props[k]},getPropertyValue(k){return this.props[k]||''}},
     classes:new Set(),classList:{add(c){o.classes.add(c)},remove(c){o.classes.delete(c)},toggle(c,on){if(on===undefined?!o.classes.has(c):on)o.classes.add(c);else o.classes.delete(c)},contains(c){return o.classes.has(c)}},setAttribute:noop,removeAttribute:noop,focus:noop,setPointerCapture:noop,insertBefore:noop,
     querySelector(sel){const m=/^\.([\w-]+)$/.exec(sel),f=m&&new RegExp('<span class="([^"]*\\b'+m[1]+'\\b[^"]*)">([^<]*)</span>').exec(html);
       if(!f)return ['.cd','.yay','.mean'].includes(sel)?null:mk('q');
@@ -254,6 +255,20 @@ test('lamp: waits for a sound system that wakes up late (new game)',()=>{const a
 test('lamp: allows for output delay (like Bluetooth)',()=>{const a=boot();__acLatency=0.25;checkLampMatchesSound(a,firstPlayTones(a));});
 test('lamp: flash setting off keeps it dark while the sound plays',()=>{const a=boot();a.check('flash',false);const tones=firstPlayTones(a);ok(tones.length>2);let lit=false;for(let i=0;i<200;i++){a.advance(10);if(a.E.lamp.classes.has('on'))lit=true;}ok(!lit);});
 test('lamp: off once the word has been heard',()=>{const a=boot();const tones=firstPlayTones(a);goTo(a,heardAt(tones[tones.length-1][1])+100);ok(!a.E.lamp.classes.has('on'));});
+
+/* ---------- countdown pie ---------- */
+const pieOn=a=>a.E.lamp.classes.has('pie');
+const pieLeft=a=>parseFloat(a.E.lamp.style.getPropertyValue('--p'));
+test('pie: the countdown turns the lamp into a full pie',()=>{const a=boot();a.click('start');a.advance(20);ok(pieOn(a),'no pie');ok(pieLeft(a)>0.95,'not full: '+pieLeft(a));});
+test('pie: it empties smoothly over the countdown',()=>{const a=boot();a.click('start');a.advance(1350);ok(Math.abs(pieLeft(a)-0.5)<0.03,'half way: '+pieLeft(a));a.advance(1250);ok(pieLeft(a)<0.05,'nearly empty: '+pieLeft(a));});
+test('pie: gone when the word starts, and the lamp flashes the code',()=>{const a=boot();const tones=firstPlayTones(a);ok(!pieOn(a),'pie still there');eq(a.E.lamp.style.getPropertyValue('--p'),'');goTo(a,heardAt((tones[0][0]+tones[0][1])/2));ok(a.E.lamp.classes.has('on'));});
+test('pie: shows again for the next word',()=>{const a=boot();a.click('start');a.advance(LONG);a.answer(a.word());a.advance(1250);ok(pieOn(a)&&pieLeft(a)>0.9,'next word pie');});
+test('pie: read mode countdown has it too',()=>{const a=boot();a.mode('read');a.click('start');a.advance(900);ok(pieOn(a));a.advance(2000);ok(!pieOn(a));});
+test('pie: pressing Play during the countdown removes it',()=>{const a=boot();a.click('start');a.advance(500);a.click('play');ok(!pieOn(a));a.advance(100);ok(!pieOn(a),'came back');});
+test('pie: answering during the countdown removes it',()=>{const a=boot();a.click('start');a.advance(500);a.answer('QQQ');ok(!pieOn(a));});
+test('pie: leaving the tab removes it, coming back starts it full',()=>{const a=boot();a.click('start');a.advance(1500);a.tab('chart');ok(!pieOn(a));a.advance(3000);a.tab('practice');a.advance(20);ok(pieOn(a)&&pieLeft(a)>0.95);});
+test('pie: ending the session removes it',()=>{const a=boot();a.click('start');a.advance(500);a.click('quit');ok(!pieOn(a));a.advance(100);ok(!pieOn(a));});
+test('pie: CSS draws it as a conic-gradient wedge from --p',()=>{const css=PAGE.match(/<style>([\s\S]*?)<\/style>/)[1];ok(/\.lamp\.pie\{[^}]*conic-gradient\([^}]*var\(--p/.test(css));});
 
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});

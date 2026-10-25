@@ -41,6 +41,8 @@ input[type=range]{width:100%;accent-color:var(--brass)}
 .round{font-family:var(--mono);color:var(--muted);letter-spacing:2px;font-size:14px}
 .lamp{width:72px;height:72px;border-radius:50%;background:var(--line);transition:background .03s;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
 .lamp.on{background:var(--lamp);box-shadow:0 0 28px var(--lamp)}
+/* during the countdown the lamp is a pie that empties; --p is the part left (1 to 0) */
+.lamp.pie{--p:1;background:conic-gradient(var(--brass) calc(var(--p)*360deg),var(--line) 0);transition:none}
 .code{font:700 34px/1.3 var(--mono);letter-spacing:4px;word-break:break-word;max-width:100%}
 .code .gap{display:inline-block;width:.8em}
 .word{font:700 40px/1.1 var(--disp);letter-spacing:3px}
@@ -241,7 +243,12 @@ var AC=null,playing=null;
 function ctx(){if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C();}if(AC&&AC.state!=='running'&&AC.resume)AC.resume();return AC;}
 document.addEventListener('pointerdown',function(){if(AC&&AC.state!=='running'&&AC.resume)AC.resume();},true);
 function toCode(text,k){if(k==='prosigns')return text.split('').map(function(ch){return MORSE[ch]||'';}).join('');return text.split(' ').map(function(w){return w.split('').map(function(ch){return MORSE[ch]||'';}).filter(Boolean).join(' ');}).join(' / ');}
-function stopPlay(){if(typeof againT!=='undefined')clearTimeout(againT);if(typeof cdT!=='undefined'&&cdT){clearTimeout(cdT);cdT=null;}if(playing){playing.oscs.forEach(function(o){try{o.stop();}catch(e){}});}playing=null;$('lamp').classList.remove('on');}
+var pieTok=0;
+/* the countdown pie, drawn on the lamp every frame from the time left */
+function pieStart(total){var tok=++pieTok,t0=performance.now(),L=$('lamp');
+  (function draw(){if(tok!==pieTok)return;var left=1-(performance.now()-t0)/total;if(left<=0){pieStop();return;}L.classList.add('pie');L.style.setProperty('--p',left.toFixed(3));frame(draw);})();}
+function pieStop(){pieTok++;var L=$('lamp');L.classList.remove('pie');L.style.removeProperty('--p');}
+function stopPlay(){pieStop();if(typeof againT!=='undefined')clearTimeout(againT);if(typeof cdT!=='undefined'&&cdT){clearTimeout(cdT);cdT=null;}if(playing){playing.oscs.forEach(function(o){try{o.stop();}catch(e){}});}playing=null;$('lamp').classList.remove('on');}
 /* The Morse controller: one schedule of tones ([start, length] in seconds) timed by the audio clock.
    Two views follow the same schedule and clock: the speaker (oscillators) and the lamp (redrawn every frame). */
 function schedule(text,slowFactor,joined){var unit=1.2/S.wpm*(slowFactor||1),extra=unit*S.far*1.5,t=0,tones=[];
@@ -338,8 +345,8 @@ function fadeYaySoon(){clearTimeout(yayT);yayT=setTimeout(function(){var y=$('fe
 function itemKind(k){return {prosigns:'prosign',codes:'code',calls:'call sign',letters:'letter',numbers:'number'}[k]||'word';}
 function curMean(){return meanHTML(sess.items[sess.i],sess.kinds[sess.i]);}
 function countdown(pre,cb){clearTimeout(cdT);var n=3,mine=sess,round=sess.i,what=(sess.i>0?'next ':'')+itemKind(sess.kinds[sess.i]);
-  $('feedback').innerHTML=pre;
-  (function tick(){cdT=null;if(sess!==mine||sess.i!==round||$('session').hidden)return;if(n===0){note('');cb();return;}
+  $('feedback').innerHTML=pre;pieStart(n*900);
+  (function tick(){cdT=null;if(sess!==mine||sess.i!==round||$('session').hidden){pieStop();return;}if(n===0){note('');pieStop();cb();return;}
     note('Here comes your '+what+' in '+n+'…');n--;cdT=setTimeout(tick,900);})();}
 function autoPlay(count){clearTimeout(againT);if(!sess||$('session').hidden||sess.wait)return;var mine=sess,round=sess.i,n=count||Math.min(5,Math.max(1,+S.reps||2)),k=1;
   /* play it n times with a 2 second pause between, then wait for the answer.
@@ -355,7 +362,7 @@ function resumeRound(){if(!sess||sess.wait)return;var it=sess.items[sess.i];
 function later(ms,fn){var mine=sess;mine.wait=true;setTimeout(function(){if(sess!==mine)return;mine.wait=false;fn();},ms);}
 function codeHTML(t,k){return t.split('').map(function(ch){return esc(MORSE[ch]||'');}).join(k==='prosigns'?'':'<span class="gap"></span>');}
 $('start').addEventListener('click',function(){ctx();startSession();});
-function cancelCd(){if(cdT){clearTimeout(cdT);cdT=null;var c=$('feedback').querySelector&&$('feedback').querySelector('.cd');if(c&&c.remove)c.remove();}}
+function cancelCd(){pieStop();if(cdT){clearTimeout(cdT);cdT=null;var c=$('feedback').querySelector&&$('feedback').querySelector('.cd');if(c&&c.remove)c.remove();}}
 $('play').addEventListener('click',function(){clearTimeout(againT);cancelCd();if(sess)sess.autoLeft=0;playRound();});
 $('slow').addEventListener('click',function(){clearTimeout(againT);cancelCd();if(sess)sess.autoLeft=0;playRound(true);});
 $('showcode').addEventListener('click',function(){if(!sess)return;sess.codeShown=true;$('codebox').innerHTML=codeHTML(sess.items[sess.i],sess.kinds[sess.i]);});
