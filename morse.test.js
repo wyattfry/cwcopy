@@ -183,6 +183,26 @@ test('results: practice my misses includes every miss',()=>{const a=boot();a.set
 test('results: practice my misses has each miss once',()=>{const a=boot();a.set('rounds',10);a.set('kind','letters');a.click('start');const want=a.M.sess.items.slice().sort().join();for(let i=0;i<10;i++){a.advance(LONG);a.click('skip');}a.E.retry.onclick();eq(a.M.sess.items.slice().sort().join(),want);});
 test('settings: broken saved slider values fall back to normal',()=>{const a=boot({wpm:'abc',pitch:-5,far:99,vol:null,loopv:1});eq(a.M.S.wpm,10);eq(a.M.S.vol,60);eq(a.M.S.pitch,600);eq(a.M.S.far,2);a.click('start');a.advance(LONG);eq(a.plays(),'PLAYED 2 TIMES');ok(isFinite(window.__lastMs));});
 test('settings: good saved slider values are kept',()=>{const a=boot({wpm:18,lenmin:4,lenmax:6,loopv:1});eq(a.M.S.wpm,18);eq(a.M.S.lenmin,4);eq(a.M.S.lenmax,6);});
+/* ---------- answer sounds ---------- */
+// chime notes are the non-sine oscillators made after index n0; gains are created in pairs with oscillators
+const chimes=n0=>__oscs.map((o,i)=>({o,g:__gains[i]})).slice(n0).filter(x=>x.o.type!=='sine');
+const semis=(f,root)=>Math.round(12*Math.log2(f/root));
+function rightThenCheck(a){a.click('start');a.advance(LONG);const n0=__oscs.length;a.answer(a.word());return chimes(n0);}
+test('sound: right answer plays a rising major triad (root, 3rd, 5th)',()=>{const a=boot();const c=rightThenCheck(a);eq(c.length,3);eq(c.map(x=>semis(x.o.frequency.value,a.M.S.pitch)).join(),'0,4,7');});
+test('sound: right answer is one note at a time (monophone)',()=>{const a=boot();const c=rightThenCheck(a);for(let i=1;i<c.length;i++)ok(c[i].o.t>=c[i-1].o.end,'note '+i+' overlaps');});
+test('sound: notes have a short attack (under 15ms)',()=>{const a=boot();const c=rightThenCheck(a);c.forEach(x=>{const r=x.g.gain.calls.find(k=>k[0]==='ramp');ok(r&&r[2]-x.o.t<0.015,'slow attack');});});
+test('sound: radio-like tone, quieter than the Morse beeps',()=>{const a=boot();const c=rightThenCheck(a);const beep=__gains.find((g,i)=>__oscs[i].type==='sine');const bp=Math.max(...beep.gain.calls.map(k=>k[1]));c.forEach(x=>{ok(x.o.type==='triangle'||x.o.type==='square',x.o.type);ok(Math.max(...x.g.gain.calls.map(k=>k[1]))<bp*0.6,'too loud');});});
+test('sound: follows the pitch setting',()=>{const a=boot();a.set('pitch',500);const c=rightThenCheck(a);eq(c[0].o.frequency.value,500);});
+test('sound: volume 0 makes the chimes silent',()=>{const a=boot();a.set('vol',5);a.M.S.vol=0;const c=rightThenCheck(a);c.forEach(x=>eq(Math.max(...x.g.gain.calls.map(k=>k[1])),0));});
+test('sound: wrong answer plays a different, falling sound',()=>{const a=boot();a.click('start');a.advance(LONG);const n0=__oscs.length;a.answer('ZZZZZ');const c=chimes(n0);ok(c.length>=2,'notes '+c.length);ok(c[c.length-1].o.frequency.value<c[0].o.frequency.value,'not falling');ok(c.map(x=>semis(x.o.frequency.value,a.M.S.pitch)).join()!=='0,4,7');});
+test('sound: wrong sound is not cut off by the replay',()=>{const a=boot();a.click('start');a.advance(LONG);const n0=__oscs.length;a.answer('ZZZZZ');const c=chimes(n0);a.advance(LONG);c.forEach(x=>ok(typeof x.o.end==='number','was cut off'));});
+test('sound: last wrong try ("It was") plays the wrong sound',()=>{const a=boot();a.set('tries',1);a.click('start');a.advance(LONG);const n0=__oscs.length;a.answer('ZZZZZ');ok(a.fb().includes('It was'));ok(chimes(n0).length>=2);});
+test('sound: Skip makes no answer sound',()=>{const a=boot();a.click('start');a.advance(LONG);const n0=__oscs.length;a.click('skip');eq(chimes(n0).length,0);});
+test('sound: partner they got it plays the triad',()=>{const a=boot();a.mode('partner');a.click('start');a.advance(LONG);const n0=__oscs.length;a.click('gotit');eq(chimes(n0).map(x=>semis(x.o.frequency.value,a.M.S.pitch)).join(),'0,4,7');});
+test('sound: partner wrong guess and show answer play the wrong sound',()=>{const a=boot();a.mode('partner');a.click('start');a.advance(LONG);let n0=__oscs.length;a.click('addguess');ok(chimes(n0).length>=2,'wrong guess');a.advance(LONG);n0=__oscs.length;a.click('missed');ok(chimes(n0).length>=2,'show answer');});
+test('sound: finishing a session plays a longer fanfare ending on the octave',()=>{const a=boot();a.set('rounds',5);a.click('start');for(let i=0;i<4;i++){a.advance(LONG);a.click('skip');}a.advance(LONG);a.answer(a.word());const n0=__oscs.length;a.advance(1300);eq(a.M.sess,null);const c=chimes(n0);ok(c.length>=5,'notes '+c.length);eq(semis(c[c.length-1].o.frequency.value,a.M.S.pitch),12);for(let i=1;i<c.length;i++)ok(c[i].o.t>=c[i-1].o.end,'overlap');});
+test('sound: ending a session early plays no fanfare',()=>{const a=boot();a.click('start');a.advance(LONG);a.click('skip');const n0=__oscs.length;a.click('quit');eq(chimes(n0).length,0);});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});

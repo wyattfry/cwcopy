@@ -249,6 +249,14 @@ function play(text,slowFactor,joined){stopPlay();var a=ctx();slowFactor=slowFact
   var words=text.split(' ');
   words.forEach(function(w,wi){w.split('').forEach(function(ch,ci){var code=MORSE[ch]||'';code.split('').forEach(function(sym,si){beep(sym==='.'?unit:unit*3);if(si<code.length-1)t+=unit;});if(ci<w.length-1)t+=joined?unit:unit*3+extra;});if(wi<words.length-1)t+=unit*7+extra*2;});
   timers.o=oscs;playing=timers;return (t-start)*1000;}
+/* answer sounds: quiet radio-style notes, one at a time, quick attack. notes are [semitones from your pitch, seconds, gap after] */
+var SOUNDS={right:{type:'triangle',notes:[[0,.09],[4,.09],[7,.18]]},
+  wrong:{type:'square',vol:.5,notes:[[-5,.12],[-6,.26]]},
+  done:{type:'triangle',notes:[[0,.09],[4,.09],[7,.09],[12,.18,.12],[7,.09],[12,.36]]}};
+function chime(name){var a=ctx(),c=SOUNDS[name];if(!a||!c)return;var t=a.currentTime+.03,peak=S.vol/100*.18*(c.vol||1);
+  c.notes.forEach(function(n){var o=a.createOscillator(),g=a.createGain(),len=n[1];o.type=c.type;o.frequency.value=S.pitch*Math.pow(2,n[0]/12);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.006);g.gain.setValueAtTime(peak,t+len-.02);g.gain.linearRampToValueAtTime(0,t+len);
+    o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len);t+=len+(n[2]||.015);});}
 
 /* ---------- setup ui ---------- */
 function bindRange(id,key,fmt){var el=$(id),v=+S[key];if(!isFinite(v)||(el.min!==''&&v<+el.min)||(el.max!==''&&v>+el.max))v=DEF[key];S[key]=v;el.value=v;var out=function(){$(id+'-v').textContent=fmt?fmt(+el.value):el.value;};out();
@@ -344,30 +352,30 @@ $('hint').addEventListener('click',function(){if(!sess)return;var it=sess.items[
 function record(ok){var it=sess.items[sess.i];
   sess.log.push({item:it,kind:sess.kinds[sess.i],guesses:sess.guesses.slice(),ok:ok,help:sess.hintLevel>0||sess.codeShown,plays:sess.plays||0});
   if(ok)noteCorrect(it);
-  sess.i++;if(sess.i>=sess.items.length)finish();else nextRound();}
+  sess.i++;if(sess.i>=sess.items.length)finish(true);else nextRound();}
 function triesLeft(){if(+S.tries===0)return Infinity;return Math.max(0,(+S.tries||1)-sess.guesses.length);}
 $('submit').addEventListener('click',function(){if(!sess||this.disabled)return;var it=sess.items[sess.i],g=clean($('ans').value);
   if(sess.wait)return;if(!g){if(!cdT)$('feedback').textContent='Type your answer first, or press Skip.';return;}
   cancelCd();sess.guesses.push(g);var btn=this;
-  if(g===it){clearTimeout(againT);$('feedback').innerHTML='<span class="ok">✓ Yay, that\'s right!</span>'+curMean();btn.disabled=true;later(1200,function(){btn.disabled=false;if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};record(true);});return;}
-  noteMistake(it,g);
+  if(g===it){clearTimeout(againT);chime('right');$('feedback').innerHTML='<span class="ok">✓ Yay, that\'s right!</span>'+curMean();btn.disabled=true;later(1200,function(){btn.disabled=false;if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};record(true);});return;}
+  noteMistake(it,g);chime('wrong');
   if(triesLeft()>0){var tl=triesLeft();$('feedback').innerHTML='<span class="no">✗ Not quite.</span> '+(tl===Infinity?(sess.mode==='read'?'Look at the code again and try again.':'Listen again and try again.'):'Try again ('+tl+' '+(tl===1?'try':'tries')+' left).');$('ans').value='';try{$('ans').focus();}catch(e){}if(sess.mode==='listen'&&S.autoplay){stopPlay();var mine=sess,r=sess.i;setTimeout(function(){if(sess===mine&&sess.i===r)autoPlay();},700);}return;}
   $('feedback').innerHTML='<span class="no">✗ It was '+esc(it)+'</span>'+curMean();btn.disabled=true;later(1500,function(){btn.disabled=false;record(false);});});
 $('ans').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();$('submit').click();}});
 $('skip').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();noteMistake(sess.items[sess.i],'');record(false);});
 function addGuess(){if(!sess||sess.wait)return false;var g=clean($('said').value);
   var it=sess.items[sess.i];if(g===it){$('feedback').textContent='That guess is right! Tap ✓ They got it.';return false;}
-  cancelCd();if(g){sess.guesses.push(g);noteMistake(it,g);$('guesslist').textContent='Guesses so far: '+sess.guesses.join(' → ');}else noteMistake(it,'');
+  cancelCd();chime('wrong');if(g){sess.guesses.push(g);noteMistake(it,g);$('guesslist').textContent='Guesses so far: '+sess.guesses.join(' → ');}else noteMistake(it,'');
   $('said').value='';$('feedback').innerHTML='<span class="no">✗ Not quite.</span> '+(S.autoplay?'Here it comes again…':'Tap Play to play it again.');
   if(S.autoplay){stopPlay();var mine=sess,r=sess.i;setTimeout(function(){if(sess===mine&&sess.i===r)autoPlay();},700);}try{$('said').focus();}catch(e){}return true;}
 $('addguess').addEventListener('click',addGuess);
 $('said').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addGuess();}});
-$('gotit').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();stopPlay();var it=sess.items[sess.i];if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};var last=clean($('said').value);if(last&&last!==it){sess.guesses.push(last);noteMistake(it,last);}sess.guesses.push(it);record(true);});
-$('missed').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();stopPlay();var it=sess.items[sess.i],last=clean($('said').value);if(last){sess.guesses.push(last);noteMistake(it,last);}else if(!sess.guesses.length)noteMistake(it,'');
+$('gotit').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();stopPlay();chime('right');var it=sess.items[sess.i];if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};var last=clean($('said').value);if(last&&last!==it){sess.guesses.push(last);noteMistake(it,last);}sess.guesses.push(it);record(true);});
+$('missed').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();stopPlay();chime('wrong');var it=sess.items[sess.i],last=clean($('said').value);if(last){sess.guesses.push(last);noteMistake(it,last);}else if(!sess.guesses.length)noteMistake(it,'');
   $('feedback').innerHTML='<span class="no">The answer was '+esc(it)+'</span>'+curMean();var b=this;b.disabled=true;$('gotit').disabled=true;later(1500,function(){b.disabled=false;$('gotit').disabled=false;record(false);});});
 $('quit').addEventListener('click',function(){if(!sess)return;stopPlay();['submit','missed','gotit'].forEach(function(id){$(id).disabled=false;});if(sess.log.length)finish();else{sess=null;show('setup');}});
 
-function finish(){stopPlay();var log=sess.log,right=log.filter(function(x){return x.ok;}).length,pct=log.length?Math.round(right/log.length*100):0;
+function finish(done){stopPlay();if(done)chime('done');var log=sess.log,right=log.filter(function(x){return x.ok;}).length,pct=log.length?Math.round(right/log.length*100):0;
   $('score').textContent=pct+'%';var totPlays=log.reduce(function(a,x){return a+(x.plays||0);},0),avgPlays=log.length?(totPlays/log.length):0;
   $('scorenote').textContent=right+' of '+log.length+' right'+(sess.mode==='partner'?' (graded by the reader)':'')+'. '+(sess.mode==='read'?'':'You played the code '+totPlays+' time'+(totPlays===1?'':'s')+' in all (about '+avgPlays.toFixed(1)+' per round). ')+(pct===100?'Perfect!':pct>=80?'Great job!':pct>=50?'Nice work. Keep practicing!':'Every session makes you better!');
   $('reslist').innerHTML='<div class="rrow" style="font-weight:800;color:var(--muted)"><span></span><span>Answer</span><span>Code</span><span>'+(sess.mode==='partner'?'They said':'You said')+'</span></div>'+
