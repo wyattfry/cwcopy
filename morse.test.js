@@ -4,13 +4,13 @@ const fs=require('fs');
 // the app's code is the last <script> in the page
 const PAGE=fs.readFileSync(__dirname+'/index.html','utf8');
 const APP_JS=[...PAGE.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
-const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('return (t-start)*1000;}','window.__lastMs=(t-start)*1000;return window.__lastMs;}');
+const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('function play(text,slowFactor,joined){','function play(text,slowFactor,joined){return window.__lastMs=play0.apply(this,arguments);}\nfunction play0(text,slowFactor,joined){');
 const noop=()=>{};
 function boot(saved){
   const E={},H={};let now=0,tid=0,timers=[];const store={};if(saved)store['morse-practice-v1']=JSON.stringify(saved);
   const mk=id=>{let html='';const o={id,value:'',checked:false,hidden:false,disabled:false,dataset:{},placeholder:'',
     get innerHTML(){return html},set innerHTML(v){html=String(v)},get textContent(){return html.replace(/<[^>]*>/g,'')},set textContent(v){html=String(v)},
-    classList:{add:noop,remove:noop,toggle:noop},setAttribute:noop,removeAttribute:noop,focus:noop,setPointerCapture:noop,insertBefore:noop,
+    classes:new Set(),classList:{add(c){o.classes.add(c)},remove(c){o.classes.delete(c)},toggle(c,on){if(on===undefined?!o.classes.has(c):on)o.classes.add(c);else o.classes.delete(c)},contains(c){return o.classes.has(c)}},setAttribute:noop,removeAttribute:noop,focus:noop,setPointerCapture:noop,insertBefore:noop,
     querySelector(sel){const m=/^\.([\w-]+)$/.exec(sel),f=m&&new RegExp('<span class="([^"]*\\b'+m[1]+'\\b[^"]*)">([^<]*)</span>').exec(html);
       if(!f)return ['.cd','.yay','.mean'].includes(sel)?null:mk('q');
       return {remove(){html=html.replace(f[0],'')},classList:{add(c){html=html.replace(f[0],'<span class="'+f[1]+' '+c+'">'+f[2]+'</span>')},remove:noop,toggle:noop}};},
@@ -20,15 +20,17 @@ function boot(saved){
   // sliders get their real min/max from the page, like a browser would
   for(const m of PAGE.matchAll(/<input type="range" id="(\w+)" min="(-?\d+)" max="(-?\d+)"/g)){const e=el(m[1]);e.min=m[2];e.max=m[3];}
   const DH={};global.document={getElementById:el,addEventListener(type,f){const old=DH[type];DH[type]=old?function(e){old(e);f(e)}:f},querySelectorAll:()=>[],documentElement:{setAttribute:noop,removeAttribute:noop},activeElement:{tagName:'BODY'}};
-  function AC(){this.currentTime=0;this.destination={};this.state='running';global.__ac=this;}
+  // the audio clock follows the fake clock; __acDelay makes it start late (like a sound system waking up), __acLatency adds output latency
+  function AC(){Object.defineProperty(this,'currentTime',{get:()=>Math.max(0,now-(global.__acDelay||0))/1000});this.outputLatency=global.__acLatency||0;this.destination={};this.state='running';global.__ac=this;}
   // every oscillator and gain is recorded (in pairs) so tests can check the sounds
   global.__oscs=[];global.__gains=[];
-  AC.prototype.createOscillator=function(){const o={type:'sine',frequency:{},connect:noop,start(t){this.t=t},stop(t){this.end=t;this.stopped=true}};__oscs.push(o);return o};
+  AC.prototype.createOscillator=function(){const o={type:'sine',frequency:{},connect:noop,start(t){this.t=t},stop(t){if(t===undefined)this.cut=now/1000;else this.end=t;this.stopped=true}};__oscs.push(o);return o};
   AC.prototype.createGain=function(){const calls=[];const g={gain:{value:0,calls,setValueAtTime(v,t){calls.push(['set',v,t])},linearRampToValueAtTime(v,t){calls.push(['ramp',v,t])}},connect:noop};__gains.push(g);return g};AC.prototype.resume=function(){this.resumed=true;this.state='running';};
   global.window={AudioContext:AC,matchMedia:()=>({matches:false})};
   global.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=v}};
   Object.defineProperty(global,'performance',{value:{now:()=>now},configurable:true,writable:true});
   global.setTimeout=(f,ms)=>{const id=++tid;timers.push({id,at:now+(ms||0),f});return id};
+  global.__acDelay=0;global.__acLatency=0;window.requestAnimationFrame=f=>setTimeout(f,16);window.cancelAnimationFrame=id=>clearTimeout(id);
   global.clearTimeout=id=>{timers=timers.filter(t=>t.id!==id)};
   eval(SRC);
   const app={E,H,DH,M:window.__m,store,
