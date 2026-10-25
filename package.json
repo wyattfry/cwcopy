@@ -1,0 +1,5 @@
+{
+  "name": "morse-practice",
+  "private": true,
+  "scripts": { "test": "node morse.test.js" }
+}

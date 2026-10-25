@@ -1,0 +1,435 @@
+<meta charset="utf-8">
+<title>Morse Code Practice</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Nunito:wght@600;700;800&family=Bitter:wght@700&display=swap">
+<style>
+/* Layout: an old-telegraph look. Tabs across the top; each tab is one wide card with a big "key" area and simple controls */
+:root{
+  --bg:#141A22;--card:#1C2430;--ink:#EEF2F7;--muted:#9FB0C3;--line:#2E3A4A;
+  --brass:#E2B45A;--on-brass:#1B1406;--lamp:#FFD36B;--good:#6FD39B;--bad:#F2877D;
+  --disp:"Bitter",Georgia,serif;--body:"Nunito","Segoe UI",system-ui,sans-serif;--mono:"Space Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#F2EEE6;--card:#FFFCF6;--ink:#1F2630;--muted:#5E6B7A;--line:#DCD3C3;--brass:#9A6B12;--on-brass:#FFFFFF;--lamp:#D99A12;--good:#22804F;--bad:#B23A2F;color-scheme:light}}
+:root[data-theme="light"]{--bg:#F2EEE6;--card:#FFFCF6;--ink:#1F2630;--muted:#5E6B7A;--line:#DCD3C3;--brass:#9A6B12;--on-brass:#FFFFFF;--lamp:#D99A12;--good:#22804F;--bad:#B23A2F;color-scheme:light}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:600 17px/1.5 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
+.wrap{max-width:900px;margin:0 auto;display:grid;gap:16px}
+h1{font:700 34px/1.1 var(--disp);margin:0;letter-spacing:.5px}
+h2{font:700 22px/1.2 var(--disp);margin:0}
+.sub{color:var(--muted);margin:4px 0 0;font-family:var(--mono);font-size:14px;letter-spacing:2px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{font:800 15px var(--body);border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 16px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:14px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.fld{display:grid;gap:6px;font-size:15px}
+.fld b{font-weight:800}
+select,input[type=text]{font:700 17px var(--body);background:var(--bg);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:9px 12px;width:100%}
+input[type=range]{width:100%;accent-color:var(--brass)}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.mode{all:unset;box-sizing:border-box;cursor:pointer;border:2px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px;background:var(--bg)}
+.mode b{font-size:17px}.mode small{color:var(--muted);font-size:13px;line-height:1.35}
+.mode[aria-pressed="true"]{border-color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
+.btn{font:800 16px var(--body);border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 16px;cursor:pointer}
+.btn.pri{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
+.btn.good{border-color:var(--good);color:var(--good)}.btn.bad{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tog{display:flex;gap:8px;align-items:center;font-size:15px}
+.stage{display:grid;gap:14px;justify-items:center;text-align:center}
+.round{font-family:var(--mono);color:var(--muted);letter-spacing:2px;font-size:14px}
+.lamp{width:72px;height:72px;border-radius:50%;background:var(--line);transition:background .03s;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
+.lamp.on{background:var(--lamp);box-shadow:0 0 28px var(--lamp)}
+.code{font:700 34px/1.3 var(--mono);letter-spacing:4px;word-break:break-word;max-width:100%}
+.code .gap{display:inline-block;width:.8em}
+.word{font:700 40px/1.1 var(--disp);letter-spacing:3px}
+.hint{color:var(--muted);font-size:15px}
+[hidden]{display:none!important}
+.mean{display:block;font-size:17px;margin-top:4px;color:var(--text)}
+.cd{display:block;font-size:22px;font-weight:700;color:var(--text);margin-top:4px}
+.answer{max-width:420px;text-align:center;font-size:22px}
+.res{display:grid;gap:6px}
+.rrow{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr);gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:6px 0;font-size:15px}
+.rrow .c{font-family:var(--mono);font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.ok{color:var(--good)}.no{color:var(--bad)}
+.score{font:700 56px/1 var(--disp)}
+.chart{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.ch{all:unset;box-sizing:border-box;cursor:pointer;border:2px solid var(--line);border-radius:12px;padding:8px;display:grid;gap:2px;justify-items:center;background:var(--bg)}
+.ch b{font:700 24px var(--disp)}.ch span{font:700 15px var(--mono);letter-spacing:2px;color:var(--brass)}
+.ch.miss{border-color:var(--bad)}
+.key{all:unset;cursor:pointer;width:min(260px,70vw);aspect-ratio:1;border-radius:50%;background:var(--brass);color:var(--on-brass);display:grid;place-items:center;font:800 22px var(--body);box-shadow:0 10px 0 rgba(0,0,0,.35);user-select:none;-webkit-user-select:none;touch-action:none}
+.key.down{transform:translateY(8px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.decoded{font:700 30px var(--mono);letter-spacing:3px;min-height:1.4em}
+.hist{display:grid;gap:6px}
+.hrow{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:6px 0;font-size:15px;flex-wrap:wrap}
+.btn:focus-visible,.tab:focus-visible,.mode:focus-visible,.ch:focus-visible,.key:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--lamp);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.lamp,.key{transition:none}}
+</style>
+
+<div class="wrap">
+  <header><h1>Morse Code Practice</h1><p class="sub">-- --- .-. ... .</p></header>
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-t="practice" aria-selected="true">Practice</button>
+    <button class="tab" data-t="send" aria-selected="false">Send</button>
+    <button class="tab" data-t="chart" aria-selected="false">Code chart</button>
+    <button class="tab" data-t="history" aria-selected="false">History</button>
+    <button class="tab" id="themebtn" aria-label="Switch light or dark">◐ Theme</button>
+  </nav>
+
+  <!-- PRACTICE: setup -->
+  <section class="card" id="setup">
+    <h2>Set up a session</h2>
+    <div class="modes" id="modes">
+      <button class="mode" data-m="listen" aria-pressed="true"><b>🎧 Listen solo</b><small>The app plays the code. You type the word.</small></button>
+      <button class="mode" data-m="read" aria-pressed="false"><b>👀 Read solo</b><small>The app shows dots and dashes. You type the word.</small></button>
+      <button class="mode" data-m="partner" aria-pressed="false"><b>👥 Partner</b><small>One person reads and plays the code. The other says what they think it is out loud. The reader grades.</small></button>
+    </div>
+    <div class="grid2">
+      <label class="fld"><b>What to practice</b><select id="kind"><option value="words">Words</option><option value="letters">Single letters</option><option value="numbers">Numbers</option><option value="calls">Call signs (like K2ABC)</option><option value="codes">Q codes and ham shorthand (like QSO, CQ, 73)</option><option value="prosigns">Prosigns (like SK, AR, KN)</option><option value="mixed">Mix of everything</option></select></label>
+      <label class="fld"><b>Tries per word (solo)</b><select id="tries"><option value="0">Until you get it right</option><option value="1">1 try</option><option value="2">2 tries</option><option value="3">3 tries</option></select></label>
+      <label class="fld"><b>Times to play each word before you answer</b><select id="reps"><option value="1">1 time</option><option value="2">2 times</option><option value="3">3 times</option><option value="4">4 times</option><option value="5">5 times</option></select></label>
+      <label class="fld"><b>How many rounds</b><select id="rounds"><option>5</option><option selected>10</option><option>15</option><option>20</option><option>30</option></select></label>
+      <label class="fld" id="lenmin-f"><b>Shortest word: <span id="lenmin-v"></span> letters</b><input type="range" id="lenmin" min="2" max="10" value="3"></label>
+      <label class="fld" id="lenmax-f"><b>Longest word: <span id="lenmax-v"></span> letters</b><input type="range" id="lenmax" min="2" max="10" value="5"></label>
+      <label class="fld"><b>Speed: <span id="wpm-v"></span> words per minute</b><input type="range" id="wpm" min="5" max="25" value="10"></label>
+      <label class="fld"><b>Extra space between letters: <span id="far-v"></span></b><input type="range" id="far" min="0" max="5" value="2"></label>
+      <label class="fld"><b>Beep pitch: <span id="pitch-v"></span> Hz</b><input type="range" id="pitch" min="400" max="900" step="10" value="600"></label>
+      <label class="fld"><b>Volume: <span id="vol-v"></span>%</b><input type="range" id="vol" min="5" max="100" step="5" value="60"></label>
+    </div>
+    <div class="row">
+      <label class="tog"><input type="checkbox" id="flash" checked> Flash the light with the beeps</label>
+      <label class="tog"><input type="checkbox" id="autoplay" checked> Play each new word automatically</label>
+      <label class="tog"><input type="checkbox" id="adapt" checked> Focus on my weak letters</label>
+    </div>
+    <div class="row"><button class="btn pri" id="start">Start session</button><button class="btn" id="sample">Hear a sample</button><span class="hint" id="poolnote"></span></div>
+    <div class="hint" id="weaknote"></div>
+  </section>
+
+  <!-- PRACTICE: session -->
+  <section class="card" id="session" hidden>
+    <div class="stage">
+      <div class="round" id="roundlbl"></div>
+      <div class="lamp" id="lamp" aria-hidden="true"></div>
+      <div id="readerbox" class="stage" hidden>
+        <div class="hint">Reader only! Don’t let your partner see this part.</div>
+        <div class="word" id="rword"></div>
+      </div>
+      <div class="code" id="codebox" aria-live="polite"></div>
+      <div class="hint" id="hintline"></div>
+      <div class="round" id="playcount">PLAYED 0 TIMES</div>
+      <div class="row" style="justify-content:center">
+        <button class="btn pri" id="play">▶ Play</button>
+        <button class="btn" id="slow">🐢 Play slower</button>
+        <button class="btn" id="showcode">Show the code</button>
+        <button class="btn" id="hint">Hint</button>
+      </div>
+      <div id="solobox" class="stage" style="width:100%">
+        <input type="text" id="ans" class="answer" placeholder="Type what you hear" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your answer">
+        <div class="row" style="justify-content:center"><button class="btn pri" id="submit">Check</button><button class="btn" id="skip">Skip</button></div>
+      </div>
+      <div id="partnerbox" class="stage" hidden style="width:100%">
+        <div class="hint">After your partner says their answer out loud:</div>
+        <input type="text" id="said" class="answer" placeholder="What they said (optional)" autocomplete="off" spellcheck="false" aria-label="What your partner said">
+        <div class="row" style="justify-content:center"><button class="btn" id="addguess">✗ Wrong guess, play it again</button></div>
+        <div class="hint" id="guesslist"></div>
+        <div class="row" style="justify-content:center"><button class="btn good" id="gotit">✓ They got it</button><button class="btn bad" id="missed">✗ Not quite, show answer</button></div>
+      </div>
+      <div class="hint" id="feedback" aria-live="polite"></div>
+      <div class="row" style="justify-content:center"><button class="btn" id="quit">End session early</button></div>
+    </div>
+  </section>
+
+  <!-- PRACTICE: results -->
+  <section class="card" id="results" hidden>
+    <div class="row" style="justify-content:space-between;align-items:end"><h2>Results</h2><div class="score" id="score"></div></div>
+    <div class="hint" id="scorenote"></div>
+    <div class="res" id="reslist"></div>
+    <div id="missbox" hidden><h2 style="font-size:18px;margin-bottom:8px">Letters to practice</h2><div class="chart" id="misslist"></div></div>
+    <div class="hint" id="confnote"></div>
+    <div class="row"><button class="btn pri" id="again">New session</button><button class="btn" id="retry">Practice my misses</button></div>
+  </section>
+
+  <!-- SEND -->
+  <section class="card" id="send" hidden>
+    <h2>Send practice</h2>
+    <p class="hint" style="margin:0">Tap the big key (or hold the spacebar): a quick tap is a dot, a longer hold is a dash. Pause a bit between letters. The app uses your speed setting from Practice.</p>
+    <div class="stage">
+      <div class="hint">Try to send:</div>
+      <div class="word" id="sendword"></div>
+      <div class="code" id="sendcode" style="font-size:22px"></div>
+      <button class="key" id="key" aria-label="Telegraph key. Tap for dot, hold for dash.">TAP</button>
+      <div class="code" id="sendraw" style="font-size:24px;min-height:1.4em"></div>
+      <div class="decoded" id="senddec"></div>
+      <div class="hint" id="sendfb" aria-live="polite"></div>
+      <div class="row" style="justify-content:center"><button class="btn" id="sendclear">Clear</button><button class="btn" id="sendhint">Show the code</button><button class="btn pri" id="sendnext">New word</button></div>
+    </div>
+  </section>
+
+  <!-- CHART -->
+  <section class="card" id="chart" hidden>
+    <h2>Code chart</h2>
+    <p class="hint" style="margin:0">Tap any letter or number to hear it. Letters with a red border are ones you’ve missed in your sessions.</p>
+    <div class="chart" id="chartgrid"></div>
+    <div class="card" style="background:var(--bg)"><b>Timing rules</b><div class="hint">A dot is 1 beat. A dash is 3 beats. The gap inside a letter is 1 beat, between letters is 3 beats, and between words is 7 beats.</div></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="card" id="history" hidden>
+    <div class="row" style="justify-content:space-between"><h2>History</h2><span class="row"><button class="btn" id="weakclear">Reset weak letters</button><button class="btn" id="histclear">Clear history</button></span></div>
+    <div class="hist" id="histlist"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+function clean(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..','0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.'};
+var REV={};Object.keys(MORSE).forEach(function(k){REV[MORSE[k]]=k;});
+var WORDS=('at,be,go,hi,in,is,it,me,my,no,on,so,to,up,us,we,'+
+ 'ant,bat,bed,big,box,bug,bus,cat,cow,cup,day,dog,egg,elf,fan,fix,fox,fun,hat,hen,hop,hot,ice,jam,jet,joy,key,kid,leg,map,mix,mom,mud,net,owl,pan,pen,pig,pot,red,run,sea,sky,sun,tea,top,toy,van,web,wet,yes,zip,zoo,'+
+ 'bake,ball,bark,bear,bell,bird,blue,boat,book,cake,calm,card,cold,cook,cozy,dark,deer,desk,door,duck,fish,flag,frog,game,gift,glow,gold,good,hand,help,home,hope,jump,kind,kite,lamp,leaf,lily,lion,love,mint,moon,nest,nose,park,play,rain,read,ring,rock,rose,safe,salt,sand,ship,shoe,sing,slow,snow,soft,song,star,swim,tree,walk,wave,wind,wolf,'+
+ 'apple,beach,bread,brave,brush,candy,chair,chess,cloud,dance,dream,earth,field,flame,flute,ghost,grape,happy,heart,horse,house,juice,lemon,light,magic,maple,music,ocean,otter,paint,panda,peace,pearl,piano,pizza,plant,puppy,quiet,radio,river,robot,salad,shell,slime,smile,snack,space,spoon,storm,sugar,sunny,table,tiger,toast,towel,train,whale,'+
+ 'animal,banana,bridge,bubble,butter,camera,candle,carrot,castle,cookie,dragon,flower,forest,friend,garden,guitar,island,jungle,kitten,ladder,marble,meadow,mirror,monkey,orange,parrot,pillow,planet,pocket,purple,rabbit,rocket,sailor,school,signal,silver,spider,summer,turtle,velvet,window,winter,yellow,'+
+ 'balloon,blanket,blossom,cabbage,captain,cartoon,chicken,cupcake,diamond,dolphin,emerald,feather,firefly,giraffe,goldfish,harmony,jellyfish,kitchen,lantern,lobster,morning,mustard,octopus,pancake,penguin,picture,popcorn,rainbow,sandbox,seafoam,teacher,thunder,tractor,unicorn,volcano,whisper,'+
+ 'airplane,backpack,bluebird,building,calendar,dinosaur,elephant,firework,football,frosting,hedgehog,hospital,kangaroo,lollipop,mountain,notebook,peaceful,pineapple,question,sandwich,sapphire,scissors,starfish,sunshine,treasure,umbrella,waterfall,'+
+ 'adventure,astronaut,blueberry,butterfly,chocolate,crocodile,fireplace,hurricane,lightning,raspberry,snowflake,telescope,tomorrow,underwater,watermelon,'+
+ 'basketball,blackberry,friendship,lighthouse,strawberry,thunderbolt,toothbrush,trampoline').split(',').map(function(w){return w.toUpperCase();});
+var LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),DIGITS='0123456789'.split('');
+var CODES='QSO,QTH,QRZ,QRM,QRN,QSL,QSY,QRT,QRS,QRQ,QRV,QSB,QRP,QRX,QRL,CQ,DE,73,88,RST,599,TNX,TU,FB,OM,YL,ES,HR,UR,WX,ANT,RIG,PSE,AGN,BK,GM,GA,GE,GN,CUL,OP,NAME,SRI,HW'.split(',');
+var MEANING={QSO:'a contact (talking with another station)',QTH:'my location',QRZ:'who is calling me?',QRM:'interference from other stations',QRN:'static noise, like from storms',
+  QSL:'I got your message',QSY:'change frequency',QRT:'stopping, signing off',QRS:'please send slower',QRQ:'please send faster',QRV:'I am ready',QSB:'your signal is fading',
+  QRP:'low power',QRX:'please wait',QRL:'is this frequency busy?',CQ:'calling anyone',DE:'from (this is)','73':'best wishes','88':'hugs and kisses',
+  RST:'signal report (readability, strength, tone)','599':'a perfect signal report',TNX:'thanks',TU:'thank you',FB:'fine business (great!)',OM:'old man (a male ham)',
+  YL:'young lady (a female ham)',ES:'and',HR:'here',UR:'your, or you are',WX:'weather',ANT:'antenna',RIG:'radio equipment',PSE:'please',AGN:'again',
+  BK:'back to you',GM:'good morning',GA:'good afternoon',GE:'good evening',GN:'good night',CUL:'see you later',OP:'operator',NAME:'my name is',SRI:'sorry',HW:'how did you hear me?'};
+/* prosigns are letters sent run together with no gap */
+var PROS=['AR','AS','BT','KA','KN','SK','SN','HH','SOS'];
+var PRO_MEAN={AR:'end of message',AS:'wait',BT:'break, a pause between parts',KA:'attention, a message is starting',KN:'go ahead, only the station I am talking to',SK:'end of contact (goodbye)',SN:'understood',HH:'error, I made a mistake',SOS:'emergency, I need help'};
+var PRO_REV={};PROS.forEach(function(p){PRO_REV[p.split('').map(function(ch){return MORSE[ch];}).join('')]=p;});
+function meanText(it,k){return k==='codes'?MEANING[it]:k==='prosigns'?PRO_MEAN[it]:'';}
+function meanHTML(it,k){var m=meanText(it,k);return m?'<span class="mean">'+esc(it)+' means: '+esc(m)+'</span>':'';}
+var KIND_NAMES={prosigns:'prosigns',words:'words',letters:'letters',numbers:'numbers',calls:'call signs',codes:'Q codes',mixed:'mix'};
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+/* made-up US-style call sign: 1 or 2 letter prefix, a district digit, 1 to 3 letters */
+function makeCall(){var c=rnd(['K','N','W','A']);if(c==='A'||Math.random()<0.4)c+=rnd(c==='A'?'ABCDEFGHIJKL'.split(''):LETTERS);
+  c+=Math.random()<0.4?'2':rnd(DIGITS);var n=1+Math.floor(Math.random()*3);if(c.length===3&&n===1)n=2;for(var i=0;i<n;i++)c+=rnd(LETTERS);return c;}
+
+/* ---------- saved stuff ---------- */
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+var KEY='morse-practice-v1',S;try{S=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){S=null;}
+if(!S||typeof S!=='object')S={};
+var DEF={mode:'listen',kind:'words',rounds:'10',lenmin:3,lenmax:5,wpm:10,far:2,pitch:600,vol:60,flash:true,autoplay:true,reps:'2',adapt:true,tries:'0',hist:[],miss:{},conf:{},theme:''};
+for(var k in DEF)if(S[k]==null)S[k]=DEF[k];
+if(!S.loopv){S.tries='0';S.loopv=1;save();}
+delete S.twice;delete S.twicev;
+S.reps=String(Math.min(5,Math.max(1,parseInt(S.reps,10)||2)));if(['0','1','2','3'].indexOf(String(S.tries))<0)S.tries='0';S.tries=String(S.tries);
+if(!Array.isArray(S.hist))S.hist=[];if(!S.miss||typeof S.miss!=='object')S.miss={};if(!S.conf||typeof S.conf!=='object')S.conf={};
+
+/* ---------- theme ---------- */
+function applyTheme(){if(S.theme)document.documentElement.setAttribute('data-theme',S.theme);else document.documentElement.removeAttribute('data-theme');}
+applyTheme();
+$('themebtn').addEventListener('click',function(){var dark=S.theme?S.theme==='dark':!window.matchMedia('(prefers-color-scheme: light)').matches;S.theme=dark?'light':'dark';save();applyTheme();});
+
+/* ---------- audio ---------- */
+var AC=null,playing=null;
+function ctx(){if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C();}if(AC&&AC.state==='suspended')AC.resume();return AC;}
+function toCode(text,k){if(k==='prosigns')return text.split('').map(function(ch){return MORSE[ch]||'';}).join('');return text.split(' ').map(function(w){return w.split('').map(function(ch){return MORSE[ch]||'';}).filter(Boolean).join(' ');}).join(' / ');}
+function stopPlay(){if(typeof againT!=='undefined')clearTimeout(againT);if(typeof cdT!=='undefined'&&cdT){clearTimeout(cdT);cdT=null;}if(playing){playing.forEach(function(t){clearTimeout(t);});playing.o.forEach(function(o){try{o.stop();}catch(e){}});}playing=null;$('lamp').classList.remove('on');}
+/* plays text; slowFactor > 1 makes it slower; returns total ms */
+function play(text,slowFactor,joined){stopPlay();var a=ctx();slowFactor=slowFactor||1;
+  var unit=1.2/S.wpm*slowFactor,extra=unit*S.far*1.5,t=a?a.currentTime+0.08:0,start=t,timers=[],oscs=[];
+  function beep(len){if(a){var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=S.pitch;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(S.vol/100*.5,t+.005);g.gain.setValueAtTime(S.vol/100*.5,t+len-.005);g.gain.linearRampToValueAtTime(0,t+len);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.02);oscs.push(o);}
+    if(S.flash){var on=(t-start+0.08)*1000,off=on+len*1000;timers.push(setTimeout(function(){$('lamp').classList.add('on');},on));timers.push(setTimeout(function(){$('lamp').classList.remove('on');},off));}
+    t+=len;}
+  var words=text.split(' ');
+  words.forEach(function(w,wi){w.split('').forEach(function(ch,ci){var code=MORSE[ch]||'';code.split('').forEach(function(sym,si){beep(sym==='.'?unit:unit*3);if(si<code.length-1)t+=unit;});if(ci<w.length-1)t+=joined?unit:unit*3+extra;});if(wi<words.length-1)t+=unit*7+extra*2;});
+  timers.o=oscs;playing=timers;return (t-start)*1000;}
+
+/* ---------- setup ui ---------- */
+function bindRange(id,key,fmt){var el=$(id);el.value=S[key];var out=function(){$(id+'-v').textContent=fmt?fmt(+el.value):el.value;};out();
+  el.addEventListener('input',function(){S[key]=+el.value;if(id==='lenmin'&&S.lenmin>S.lenmax){S.lenmax=S.lenmin;$('lenmax').value=S.lenmax;$('lenmax-v').textContent=S.lenmax;}if(id==='lenmax'&&S.lenmax<S.lenmin){S.lenmin=S.lenmax;$('lenmin').value=S.lenmin;$('lenmin-v').textContent=S.lenmin;}out();save();poolNote();});}
+bindRange('lenmin','lenmin');bindRange('lenmax','lenmax');bindRange('wpm','wpm');bindRange('far','far',function(v){return ['none','a little','some','more','lots','tons'][v];});bindRange('pitch','pitch');bindRange('vol','vol');
+$('kind').value=S.kind;$('rounds').value=S.rounds;$('flash').checked=!!S.flash;$('autoplay').checked=!!S.autoplay;
+$('kind').addEventListener('change',function(){S.kind=this.value;save();lenVis();poolNote();});
+$('rounds').addEventListener('change',function(){S.rounds=this.value;save();});
+$('flash').addEventListener('change',function(){S.flash=this.checked;save();});
+$('autoplay').addEventListener('change',function(){S.autoplay=this.checked;save();});
+$('reps').value=S.reps;$('reps').addEventListener('change',function(){S.reps=this.value;save();});
+$('adapt').checked=!!S.adapt;$('adapt').addEventListener('change',function(){S.adapt=this.checked;save();});
+$('tries').value=S.tries;$('tries').addEventListener('change',function(){S.tries=this.value;save();});
+function lenVis(){var w=S.kind==='words'||S.kind==='mixed';$('lenmin-f').hidden=!w;$('lenmax-f').hidden=!w;}
+function setMode(m){S.mode=m;save();document.querySelectorAll('.mode').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.m===m));});}
+$('modes').addEventListener('click',function(e){var b=e.target.closest('.mode');if(b)setMode(b.dataset.m);});
+setMode(S.mode);lenVis();
+function wordPool(){return WORDS.filter(function(w){return w.length>=S.lenmin&&w.length<=S.lenmax;});}
+function poolNote(){if(S.kind==='words'){var n=wordPool().length;$('poolnote').textContent=n+' words match your lengths.';}else if(S.kind==='codes')$('poolnote').textContent=CODES.length+' codes, like QSO (a contact), QTH (location), CQ (calling anyone), 73 (best wishes).';else if(S.kind==='prosigns')$('poolnote').textContent='Prosigns are letters sent together with no gap, like SK (end of contact) and AR (end of message). Type the letters, like SK.';else if(S.kind==='calls')$('poolnote').textContent='Made-up call signs, like K2ABC or W1XYZ.';else $('poolnote').textContent='';}
+poolNote();
+$('sample').addEventListener('click',function(){play('SOS');});
+
+/* ---------- weak letters ---------- */
+function weakList(n){return Object.keys(S.miss).filter(function(ch){return S.miss[ch]>=1;}).sort(function(a,b){return S.miss[b]-S.miss[a];}).slice(0,n||8);}
+function weakNote(){var w=weakList(8);$('weaknote').textContent=w.length?'Weak letters right now: '+w.join(', ')+(S.adapt?'. Practice will include more of these.':'. Turn on "Focus on my weak letters" to practice them more.'):'No weak letters yet. Play a few rounds and the app will learn what to practice.';}
+function weightOf(item){var w=1;if(!S.adapt)return w;item.split('').forEach(function(ch){w+=Math.min(6,S.miss[ch]||0)*1.5;});return w;}
+function pickWeighted(list,avoid){var c=list.filter(function(x){return x!==avoid;});if(!c.length)c=list;var tot=0,ws=c.map(function(x){var w=weightOf(x);tot+=w;return w;});var r=Math.random()*tot;for(var i=0;i<c.length;i++){r-=ws[i];if(r<=0)return c[i];}return c[c.length-1];}
+function noteMistake(target,guess){var g=clean(guess);
+  for(var i=0;i<target.length;i++){var t=target[i],h=g[i];if(h!==t){S.miss[t]=(S.miss[t]||0)+1;if(h&&MORSE[h]){S.conf[t+h]=(S.conf[t+h]||0)+1;S.miss[h]=(S.miss[h]||0)+0.5;}}}
+  save();}
+function noteCorrect(target){target.split('').forEach(function(ch){if(S.miss[ch]){S.miss[ch]=Math.max(0,S.miss[ch]-0.5);if(!S.miss[ch])delete S.miss[ch];}});save();}
+
+/* ---------- session ---------- */
+var sess=null;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function makeItems(n,from){var items=[],kinds=[],prev=null;
+  if(from){var f=shuffle(from.slice());while(f.length<n)f=f.concat(shuffle(from.slice()));f=f.slice(0,n);return {items:f.map(function(x){return x.item;}),kinds:f.map(function(x){return x.kind;})};}
+  for(var i=0;i<n;i++){var k=S.kind,it;if(k==='mixed')k=rnd(['words','letters','numbers','calls','codes','prosigns']);
+    if(k==='words'){var pool=wordPool();if(!pool.length)pool=WORDS;it=pickWeighted(pool,prev);}
+    else if(k==='letters')it=pickWeighted(LETTERS,prev);
+    else if(k==='codes')it=pickWeighted(CODES,prev);
+    else if(k==='prosigns')it=pickWeighted(PROS,prev);
+    else if(k==='calls'){var cs=[];for(var c=0;c<12;c++)cs.push(makeCall());it=pickWeighted(cs,prev);}
+    else{var len=1+Math.floor(Math.random()*3);it='';for(var d=0;d<len;d++)it+=pickWeighted(DIGITS);if(it===prev)it=it+DIGITS[Math.floor(Math.random()*10)];}
+    items.push(it);kinds.push(k);prev=it;}
+  return {items:items,kinds:kinds};}
+function show(id){['setup','session','results','send','chart','history'].forEach(function(s){$(s).hidden=s!==id;});}
+function startSession(fromList){var n=+S.rounds,r=makeItems(fromList?Math.min(fromList.length,n):n,fromList);sess={mode:S.mode,items:r.items,kinds:r.kinds,i:0,log:[],hintLevel:0,codeShown:false};show('session');nextRound(true);}
+function nextRound(first){var it=sess.items[sess.i];sess.hintLevel=0;sess.codeShown=false;
+  $('roundlbl').textContent='ROUND '+(sess.i+1)+' OF '+sess.items.length;
+  sess.guesses=[];sess.plays=0;sess.autoLeft=0;$('playcount').textContent='PLAYED 0 TIMES';$('guesslist').textContent='';
+  var partner=sess.mode==='partner',read=sess.mode==='read';
+  $('readerbox').hidden=!partner;$('rword').textContent=it;
+  $('solobox').hidden=partner;$('partnerbox').hidden=!partner;
+  $('codebox').innerHTML=(read||partner)?codeHTML(it,sess.kinds[sess.i]):'';
+  $('showcode').hidden=read||partner;$('hint').hidden=partner;
+  $('play').textContent=partner?'▶ Play it for your partner':'▶ Play';
+  $('ans').value='';$('said').value='';$('feedback').innerHTML='';$('hintline').textContent='';
+  $('ans').placeholder=read?'Type the word':'Type what you hear';
+  if(!partner)setTimeout(function(){try{$('ans').focus();}catch(e){}},50);
+  var pre=sess.justRight?'<span class="ok">✓ Yay, that\'s right!</span>'+sess.justRight.m:'';sess.justRight=false;
+  if(read){$('codebox').innerHTML='';countdown(pre,function(){$('codebox').innerHTML=codeHTML(it,sess.kinds[sess.i]);try{$('ans').focus();}catch(e){}});}
+  else if(S.autoplay)countdown(pre,autoPlay);else $('feedback').innerHTML=pre;}
+function playRound(slow){if(!sess)return 0;sess.plays=(sess.plays||0)+1;$('playcount').textContent='PLAYED '+sess.plays+' TIME'+(sess.plays===1?'':'S');return play(sess.items[sess.i],slow?1.8:1,sess.kinds[sess.i]==='prosigns');}
+var againT=null,cdT=null;
+function itemKind(k){return {prosigns:'prosign',codes:'code',calls:'call sign',letters:'letter',numbers:'number'}[k]||'word';}
+function curMean(){return meanHTML(sess.items[sess.i],sess.kinds[sess.i]);}
+function countdown(pre,cb){clearTimeout(cdT);var n=3,mine=sess,round=sess.i,what=(sess.i>0?'next ':'')+itemKind(sess.kinds[sess.i]);
+  (function tick(){cdT=null;if(sess!==mine||sess.i!==round||$('session').hidden)return;if(n===0){$('feedback').innerHTML=pre;cb();return;}
+    $('feedback').innerHTML=pre+'<span class="cd">Here comes your '+what+' in '+n+'…</span>';n--;cdT=setTimeout(tick,900);})();}
+function autoPlay(count){clearTimeout(againT);if(!sess||$('session').hidden||sess.wait)return;var mine=sess,round=sess.i,n=count||Math.min(5,Math.max(1,+S.reps||2)),k=1;
+  /* play it n times with a 2 second pause between, then wait for the answer.
+     autoLeft counts plays not finished yet, so a tab switch can pick up where it stopped */
+  mine.autoLeft=n;
+  (function again(ms){againT=setTimeout(function(){if(sess!==mine||sess.i!==round||$('session').hidden||sess.wait)return;mine.autoLeft--;
+    if(k>=n){note('');return;}k++;note(n>2?'Again ('+k+' of '+n+')…':'And again…');again(playRound());},ms+(k>=n?300:2000));})(playRound());}
+function note(t){var f=$('feedback'),c=f.querySelector('.cd');if(c)c.remove();if(t)f.insertAdjacentHTML('beforeend','<span class="cd">'+t+'</span>');}
+function resumeRound(){if(!sess||sess.wait)return;var it=sess.items[sess.i];
+  if(sess.mode==='read'){if(!$('codebox').innerHTML)countdown('',function(){$('codebox').innerHTML=codeHTML(it,sess.kinds[sess.i]);});}
+  else if(S.autoplay&&!sess.plays)countdown('',autoPlay);
+  else if(S.autoplay&&sess.autoLeft>0){var left=sess.autoLeft;countdown('',function(){autoPlay(left);});}}
+function later(ms,fn){var mine=sess;mine.wait=true;setTimeout(function(){if(sess!==mine)return;mine.wait=false;fn();},ms);}
+function codeHTML(t,k){return t.split('').map(function(ch){return esc(MORSE[ch]||'');}).join(k==='prosigns'?'':'<span class="gap"></span>');}
+$('start').addEventListener('click',function(){ctx();startSession();});
+function cancelCd(){if(cdT){clearTimeout(cdT);cdT=null;var c=$('feedback').querySelector&&$('feedback').querySelector('.cd');if(c&&c.remove)c.remove();}}
+$('play').addEventListener('click',function(){clearTimeout(againT);cancelCd();if(sess)sess.autoLeft=0;playRound();});
+$('slow').addEventListener('click',function(){clearTimeout(againT);cancelCd();if(sess)sess.autoLeft=0;playRound(true);});
+$('showcode').addEventListener('click',function(){if(!sess)return;sess.codeShown=true;$('codebox').innerHTML=codeHTML(sess.items[sess.i],sess.kinds[sess.i]);});
+$('hint').addEventListener('click',function(){if(!sess)return;var it=sess.items[sess.i];sess.hintLevel++;
+  if(sess.hintLevel===1&&sess.kinds[sess.i]==='prosigns')$('hintline').textContent='It has '+it.length+' letters, sent together with no gap.';
+  else if(sess.hintLevel===1)$('hintline').textContent='It has '+it.length+' '+(/^\d+$/.test(it)?'digit':/^[A-Z]+$/.test(it)?'letter':'character')+(it.length===1?'':'s')+'.';
+  else{var n=Math.min(it.length,sess.hintLevel-1);$('hintline').textContent='Starts with: '+it.slice(0,n)+'…';}});
+function record(ok){var it=sess.items[sess.i];
+  sess.log.push({item:it,kind:sess.kinds[sess.i],guesses:sess.guesses.slice(),ok:ok,help:sess.hintLevel>0||sess.codeShown,plays:sess.plays||0});
+  if(ok)noteCorrect(it);
+  sess.i++;if(sess.i>=sess.items.length)finish();else nextRound();}
+function triesLeft(){if(+S.tries===0)return Infinity;return Math.max(0,(+S.tries||1)-sess.guesses.length);}
+$('submit').addEventListener('click',function(){if(!sess||this.disabled)return;var it=sess.items[sess.i],g=clean($('ans').value);
+  if(sess.wait)return;if(!g){if(!cdT)$('feedback').textContent='Type your answer first, or press Skip.';return;}
+  cancelCd();sess.guesses.push(g);var btn=this;
+  if(g===it){clearTimeout(againT);$('feedback').innerHTML='<span class="ok">✓ Yay, that\'s right!</span>'+curMean();btn.disabled=true;later(1200,function(){btn.disabled=false;if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};record(true);});return;}
+  noteMistake(it,g);
+  if(triesLeft()>0){var tl=triesLeft();$('feedback').innerHTML='<span class="no">✗ Not quite.</span> '+(tl===Infinity?(sess.mode==='read'?'Look at the code again and try again.':'Listen again and try again.'):'Try again ('+tl+' '+(tl===1?'try':'tries')+' left).');$('ans').value='';try{$('ans').focus();}catch(e){}if(sess.mode==='listen'&&S.autoplay){stopPlay();var mine=sess,r=sess.i;setTimeout(function(){if(sess===mine&&sess.i===r)autoPlay();},700);}return;}
+  $('feedback').innerHTML='<span class="no">✗ It was '+esc(it)+'</span>'+curMean();btn.disabled=true;later(1500,function(){btn.disabled=false;record(false);});});
+$('ans').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();$('submit').click();}});
+$('skip').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();noteMistake(sess.items[sess.i],'');record(false);});
+function addGuess(){if(!sess||sess.wait)return false;var g=clean($('said').value);
+  var it=sess.items[sess.i];if(g===it){$('feedback').textContent='That guess is right! Tap ✓ They got it.';return false;}
+  cancelCd();if(g){sess.guesses.push(g);noteMistake(it,g);$('guesslist').textContent='Guesses so far: '+sess.guesses.join(' → ');}else noteMistake(it,'');
+  $('said').value='';$('feedback').innerHTML='<span class="no">✗ Not quite.</span> '+(S.autoplay?'Here it comes again…':'Tap Play to play it again.');
+  if(S.autoplay){stopPlay();var mine=sess,r=sess.i;setTimeout(function(){if(sess===mine&&sess.i===r)autoPlay();},700);}try{$('said').focus();}catch(e){}return true;}
+$('addguess').addEventListener('click',addGuess);
+$('said').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addGuess();}});
+$('gotit').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();stopPlay();var it=sess.items[sess.i];if(sess.i<sess.items.length-1)sess.justRight={m:curMean()};var last=clean($('said').value);if(last&&last!==it){sess.guesses.push(last);noteMistake(it,last);}sess.guesses.push(it);record(true);});
+$('missed').addEventListener('click',function(){if(!sess||sess.wait)return;cancelCd();stopPlay();var it=sess.items[sess.i],last=clean($('said').value);if(last){sess.guesses.push(last);noteMistake(it,last);}else if(!sess.guesses.length)noteMistake(it,'');
+  $('feedback').innerHTML='<span class="no">The answer was '+esc(it)+'</span>'+curMean();var b=this;b.disabled=true;$('gotit').disabled=true;later(1500,function(){b.disabled=false;$('gotit').disabled=false;record(false);});});
+$('quit').addEventListener('click',function(){if(!sess)return;stopPlay();['submit','missed','gotit'].forEach(function(id){$(id).disabled=false;});if(sess.log.length)finish();else{sess=null;show('setup');}});
+
+function finish(){stopPlay();var log=sess.log,right=log.filter(function(x){return x.ok;}).length,pct=log.length?Math.round(right/log.length*100):0;
+  $('score').textContent=pct+'%';var totPlays=log.reduce(function(a,x){return a+(x.plays||0);},0),avgPlays=log.length?(totPlays/log.length):0;
+  $('scorenote').textContent=right+' of '+log.length+' right'+(sess.mode==='partner'?' (graded by the reader)':'')+'. '+(sess.mode==='read'?'':'You played the code '+totPlays+' time'+(totPlays===1?'':'s')+' in all (about '+avgPlays.toFixed(1)+' per word). ')+(pct===100?'Perfect!':pct>=80?'Great job!':pct>=50?'Nice work. Keep practicing!':'Every session makes you better!');
+  $('reslist').innerHTML='<div class="rrow" style="font-weight:800;color:var(--muted)"><span></span><span>Answer</span><span>Code</span><span>'+(sess.mode==='partner'?'They said':'You said')+'</span></div>'+
+    log.map(function(x){var gs=x.guesses.length?x.guesses.map(function(g,i){return '<span class="'+(g===x.item?'ok':'no')+'">'+esc(g)+'</span>';}).join(' → '):'<span class="hint">(skipped)</span>';
+      return '<div class="rrow"><span class="'+(x.ok?'ok':'no')+'">'+(x.ok?'✓':'✗')+'</span><b>'+esc(x.item)+(meanText(x.item,x.kind)?' <span class="hint" style="font-weight:400">('+esc(meanText(x.item,x.kind))+')</span>':'')+'</b><span class="c">'+esc(toCode(x.item,x.kind))+'</span><span>'+gs+(x.help?' <span class="hint">· used help</span>':'')+(sess.mode==='read'?'':' <span class="hint">· played '+x.plays+'×</span>')+'</span></div>';}).join('');
+  var missLetters={},mix={};log.forEach(function(x){var wrong=x.guesses.filter(function(g){return g!==x.item;});if(!x.guesses.length)wrong=[''];
+    wrong.forEach(function(g){x.item.split('').forEach(function(ch,i){if(g[i]!==ch){missLetters[ch]=(missLetters[ch]||0)+1;if(g[i]&&MORSE[g[i]]){var k=[ch,g[i]].sort().join(' and ');mix[k]=(mix[k]||0)+1;}}});});});
+  var mx=Object.keys(mix).sort(function(a,b){return mix[b]-mix[a];}).slice(0,3);
+  $('confnote').textContent=mx.length?'You mixed up: '+mx.map(function(k){return k+' ('+MORSE[k[0]]+' vs '+MORSE[k[k.length-1]]+')';}).join(', ')+'. These will show up more next time.':'';
+  var ml=Object.keys(missLetters).sort(function(a,b){return missLetters[b]-missLetters[a];}).slice(0,10);
+  $('missbox').hidden=!ml.length;$('misslist').innerHTML=ml.map(function(ch){return chHTML(ch,true);}).join('');
+  var missed=log.filter(function(x){return !x.ok;}).map(function(x){return {item:x.item,kind:x.kind};});
+  $('retry').hidden=!missed.length;$('retry').onclick=function(){ctx();startSession(missed);};
+  S.hist.unshift({d:new Date().toISOString(),mode:sess.mode,kind:S.kind,right:right,total:log.length,wpm:S.wpm});S.hist=S.hist.slice(0,30);save();
+  renderHist();renderChart();weakNote();sess=null;show('results');}
+$('again').addEventListener('click',function(){show('setup');});
+
+/* ---------- chart ---------- */
+function chHTML(ch,miss){return '<button class="ch'+(miss?' miss':'')+'" data-ch="'+ch+'"><b>'+ch+'</b><span>'+MORSE[ch]+'</span></button>';}
+function renderChart(){$('chartgrid').innerHTML=LETTERS.concat(DIGITS).map(function(ch){return chHTML(ch,(S.miss[ch]||0)>=2);}).join('');}
+renderChart();
+document.addEventListener('click',function(e){var b=e.target.closest('[data-ch]');if(b)play(b.dataset.ch);});
+
+/* ---------- history ---------- */
+var MODE_NAMES={listen:'Listen solo',read:'Read solo',partner:'Partner'};
+function renderHist(){$('histlist').innerHTML=S.hist.length?S.hist.map(function(h){var d=new Date(h.d);return '<div class="hrow"><span>'+d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'</span><span>'+MODE_NAMES[h.mode]+' · '+(KIND_NAMES[h.kind]||h.kind)+' · '+h.wpm+' wpm</span><b>'+h.right+'/'+h.total+' ('+Math.round(h.right/Math.max(1,h.total)*100)+'%)</b></div>';}).join(''):'<div class="hint">No sessions yet. Finish a practice session and it shows up here.</div>';}
+renderHist();
+$('histclear').addEventListener('click',function(){if(this.dataset.sure){S.hist=[];save();renderHist();renderChart();this.textContent='Clear history';delete this.dataset.sure;}else{this.dataset.sure='1';this.textContent='Tap again to clear';var b=this;setTimeout(function(){b.textContent='Clear history';delete b.dataset.sure;},3000);}});
+
+$('weakclear').addEventListener('click',function(){if(this.dataset.sure){S.miss={};S.conf={};save();renderChart();weakNote();this.textContent='Reset weak letters';delete this.dataset.sure;}else{this.dataset.sure='1';this.textContent='Tap again to reset';var b=this;setTimeout(function(){b.textContent='Reset weak letters';delete b.dataset.sure;},3000);}});
+weakNote();
+
+/* ---------- send practice ---------- */
+var sendJoined=false,sendTarget='',syms='',letters='',downAt=null,upTimer=null,toneO=null,toneG=null;
+function unitMs(){return 1200/S.wpm;}
+var sendKind='words';
+function newSend(){var r=makeItems(1);sendTarget=r.items[0];sendKind=r.kinds[0];
+  $('sendword').textContent=sendTarget;$('sendcode').textContent='';clearSend();}
+function clearSend(){sendDone=false;sendJoined=false;syms='';letters='';$('sendraw').textContent='';$('senddec').textContent='';$('sendfb').textContent='';}
+function toneOn(){var a=ctx();if(!a)return;toneO=a.createOscillator();toneG=a.createGain();toneO.frequency.value=S.pitch;toneG.gain.value=0;toneG.gain.linearRampToValueAtTime(S.vol/100*.5,a.currentTime+.005);toneO.connect(toneG);toneG.connect(a.destination);toneO.start();}
+function toneOff(){if(toneO&&AC){try{toneG.gain.linearRampToValueAtTime(0,AC.currentTime+.005);toneO.stop(AC.currentTime+.02);}catch(e){}}toneO=null;}
+var sendDone=false;
+function keyDown(){if(downAt!==null)return;if(sendDone){clearSend();sendDone=false;}clearTimeout(upTimer);downAt=performance.now();$('key').classList.add('down');if(S.flash)$('lamp').classList.add('on');toneOn();}
+function keyUp(){if(downAt===null)return;var dur=performance.now()-downAt;downAt=null;$('key').classList.remove('down');$('lamp').classList.remove('on');toneOff();
+  syms+=dur<unitMs()*2?'.':'-';$('sendraw').textContent=(letters?'':'')+syms;
+  upTimer=setTimeout(endLetter,unitMs()*3.5);}
+function endLetter(){if(!syms)return;var ch=REV[syms];if(!ch&&PRO_REV[syms]){ch=PRO_REV[syms];sendJoined=true;}ch=ch||'?';letters+=ch;syms='';$('senddec').textContent=letters;$('sendraw').textContent='';
+  if(letters.length>=sendTarget.length){sendDone=true;$('sendfb').innerHTML=letters===sendTarget&&sendKind==='prosigns'&&!sendJoined?'<span class="no">Close! Send '+esc(sendTarget)+' with no gap between the letters.</span>':letters===sendTarget?'<span class="ok">✓ You sent '+esc(sendTarget)+'!</span>'+meanHTML(sendTarget,sendKind):'<span class="no">You sent '+esc(letters)+'. Try again, or tap Show the code.</span>';}}
+var key=$('key');
+key.addEventListener('pointerdown',function(e){e.preventDefault();try{key.setPointerCapture(e.pointerId);}catch(err){}keyDown();});
+['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){key.addEventListener(ev,keyUp);});
+document.addEventListener('keydown',function(e){if(e.code==='Space'&&!$('send').hidden&&document.activeElement.tagName!=='INPUT'){e.preventDefault();if(!e.repeat)keyDown();}});
+document.addEventListener('keyup',function(e){if(e.code==='Space'&&!$('send').hidden){e.preventDefault();keyUp();}});
+$('sendclear').addEventListener('click',clearSend);
+$('sendhint').addEventListener('click',function(){$('sendcode').textContent=toCode(sendTarget,sendKind);});
+$('sendnext').addEventListener('click',newSend);
+newSend();
+
+/* ---------- tabs ---------- */
+$('tabs').addEventListener('click',function(e){var b=e.target.closest('[data-t]');if(!b)return;stopPlay();
+  document.querySelectorAll('.tab[data-t]').forEach(function(t){t.setAttribute('aria-selected',String(t===b));});
+  var t=b.dataset.t;if(t==='practice'){show(sess?'session':'setup');resumeRound();}else show(t);
+  if(t==='send'){$('send').insertBefore($('lamp'),$('send').querySelector('.stage'));}
+  if(t==='practice'){$('session').querySelector('.stage').insertBefore($('lamp'),$('readerbox'));}});
+})();
+</script>
