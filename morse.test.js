@@ -226,6 +226,10 @@ test('name: the Morse under the heading spells CW COPY',()=>{const sub=PAGE.matc
 test('name: saved progress key is unchanged, so nobody loses their history',()=>{ok(APP_JS.includes("KEY='morse-practice-v1'"));});
 test('name: package is called cwcopy',()=>{eq(JSON.parse(require('fs').readFileSync(__dirname+'/package.json','utf8')).name,'cwcopy');});
 
+/* ---------- publishing ---------- */
+test('deploy: GitHub Pages workflow runs the tests before publishing index.html',()=>{const f=__dirname+'/.github/workflows/deploy-pages.yml';ok(require('fs').existsSync(f),'no workflow');const y=require('fs').readFileSync(f,'utf8');
+  const testAt=y.indexOf('npm test'),uploadAt=y.indexOf('upload-pages-artifact');ok(testAt>0&&uploadAt>testAt,'tests must run before upload');ok(/cp index\.html site\//.test(y),'index.html not published');ok(/branches: \[main\]/.test(y),'not on push to main');});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
