@@ -168,6 +168,7 @@ test('send: leaving the tab while the key is held lets go of it',()=>{const a=bo
 test('send: after coming back, a quick tap is a dot (E)',()=>{const a=boot();a.tab('send');a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(100);a.tab('chart');a.advance(5000);a.tab('send');a.click('sendclear');
   a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(50);a.H.key.pointerup();a.advance(1000);eq(a.E.senddec.textContent.slice(-1),'E');});
 test('page: every CSS color token used is defined',()=>{const html=require('fs').readFileSync(__dirname+'/morse-practice.html','utf8');const used=new Set([...html.matchAll(/var\((--[\w-]+)/g)].map(m=>m[1]));const defined=new Set([...html.matchAll(/(--[\w-]+)\s*:/g)].map(m=>m[1]));[...used].forEach(v=>ok(defined.has(v),'undefined '+v));});
+test('results: says per round, not per word',()=>{const a=boot();a.set('kind','letters');a.set('rounds',5);a.click('start');for(let i=0;i<5;i++){a.advance(LONG);a.click('skip');}ok(a.E.scorenote.textContent.includes('per round'));});
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
