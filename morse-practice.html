@@ -296,7 +296,7 @@ function makeItems(n,from){var items=[],kinds=[],prev=null;
     items.push(it);kinds.push(k);prev=it;}
   return {items:items,kinds:kinds};}
 function show(id){['setup','session','results','send','chart','history'].forEach(function(s){$(s).hidden=s!==id;});}
-function startSession(fromList){var n=+S.rounds,r=makeItems(fromList?Math.min(fromList.length,n):n,fromList);sess={mode:S.mode,items:r.items,kinds:r.kinds,i:0,log:[],hintLevel:0,codeShown:false};show('session');nextRound(true);}
+function startSession(fromList){var n=fromList?fromList.length:+S.rounds,r=makeItems(n,fromList);sess={mode:S.mode,items:r.items,kinds:r.kinds,i:0,log:[],hintLevel:0,codeShown:false};show('session');nextRound(true);}
 function nextRound(first){var it=sess.items[sess.i];sess.hintLevel=0;sess.codeShown=false;
   $('roundlbl').textContent='ROUND '+(sess.i+1)+' OF '+sess.items.length;
   sess.guesses=[];sess.plays=0;sess.autoLeft=0;$('playcount').textContent='PLAYED 0 TIMES';$('guesslist').textContent='';

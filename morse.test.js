@@ -172,6 +172,8 @@ test('results: says per round, not per word',()=>{const a=boot();a.set('kind','l
 test('audio: interrupted sound (iPad) is woken up when playing',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.state='interrupted';__ac.resumed=false;a.click('play');ok(__ac.resumed);});
 test('audio: any tap wakes up interrupted sound',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.state='interrupted';__ac.resumed=false;a.DH.pointerdown({});ok(__ac.resumed);});
 test('audio: running sound is left alone',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.resumed=false;a.click('play');ok(!__ac.resumed);});
+test('results: practice my misses includes every miss',()=>{const a=boot();a.set('rounds',10);a.click('start');for(let i=0;i<10;i++){a.advance(LONG);a.click('skip');}a.set('rounds',5);a.E.retry.onclick();eq(a.M.sess.items.length,10);});
+test('results: practice my misses has each miss once',()=>{const a=boot();a.set('rounds',10);a.set('kind','letters');a.click('start');const want=a.M.sess.items.slice().sort().join();for(let i=0;i<10;i++){a.advance(LONG);a.click('skip');}a.E.retry.onclick();eq(a.M.sess.items.slice().sort().join(),want);});
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
