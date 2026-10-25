@@ -251,7 +251,7 @@ function play(text,slowFactor,joined){stopPlay();var a=ctx();slowFactor=slowFact
   timers.o=oscs;playing=timers;return (t-start)*1000;}
 
 /* ---------- setup ui ---------- */
-function bindRange(id,key,fmt){var el=$(id);el.value=S[key];var out=function(){$(id+'-v').textContent=fmt?fmt(+el.value):el.value;};out();
+function bindRange(id,key,fmt){var el=$(id),v=+S[key];if(!isFinite(v)||(el.min!==''&&v<+el.min)||(el.max!==''&&v>+el.max))v=DEF[key];S[key]=v;el.value=v;var out=function(){$(id+'-v').textContent=fmt?fmt(+el.value):el.value;};out();
   el.addEventListener('input',function(){S[key]=+el.value;if(id==='lenmin'&&S.lenmin>S.lenmax){S.lenmax=S.lenmin;$('lenmax').value=S.lenmax;$('lenmax-v').textContent=S.lenmax;}if(id==='lenmax'&&S.lenmax<S.lenmin){S.lenmin=S.lenmax;$('lenmin').value=S.lenmin;$('lenmin-v').textContent=S.lenmin;}out();save();poolNote();});}
 bindRange('lenmin','lenmin');bindRange('lenmax','lenmax');bindRange('wpm','wpm');bindRange('far','far',function(v){return ['none','a little','some','more','lots','tons'][v];});bindRange('pitch','pitch');bindRange('vol','vol');
 $('kind').value=S.kind;$('rounds').value=S.rounds;$('flash').checked=!!S.flash;$('autoplay').checked=!!S.autoplay;

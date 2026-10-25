@@ -2,7 +2,8 @@
 // Each test boots a fresh copy of the app with a fake page and a fake clock.
 const fs=require('fs');
 // the app's code is the last <script> in the page
-const APP_JS=[...fs.readFileSync(__dirname+'/morse-practice.html','utf8').matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
+const PAGE=fs.readFileSync(__dirname+'/morse-practice.html','utf8');
+const APP_JS=[...PAGE.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
 const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('return (t-start)*1000;}','window.__lastMs=(t-start)*1000;return window.__lastMs;}');
 const noop=()=>{};
 function boot(saved){
@@ -14,6 +15,8 @@ function boot(saved){
     click(){H[id]&&H[id].click&&H[id].click.call(o,{})},insertAdjacentHTML(pos,h){html+=h},
     addEventListener(t,f){H[id]=H[id]||{};const old=H[id][t];H[id][t]=old?function(e){old.call(this,e);f.call(this,e)}:f}};return o;};
   const el=id=>E[id]||(E[id]=mk(id));
+  // sliders get their real min/max from the page, like a browser would
+  for(const m of PAGE.matchAll(/<input type="range" id="(\w+)" min="(-?\d+)" max="(-?\d+)"/g)){const e=el(m[1]);e.min=m[2];e.max=m[3];}
   const DH={};global.document={getElementById:el,addEventListener(type,f){const old=DH[type];DH[type]=old?function(e){old(e);f(e)}:f},querySelectorAll:()=>[],documentElement:{setAttribute:noop,removeAttribute:noop},activeElement:{tagName:'BODY'}};
   function AC(){this.currentTime=0;this.destination={};this.state='running';global.__ac=this;}
   AC.prototype.createOscillator=()=>({frequency:{},connect:noop,start:noop,stop:noop});
@@ -174,6 +177,8 @@ test('audio: any tap wakes up interrupted sound',()=>{const a=boot();a.click('st
 test('audio: running sound is left alone',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.resumed=false;a.click('play');ok(!__ac.resumed);});
 test('results: practice my misses includes every miss',()=>{const a=boot();a.set('rounds',10);a.click('start');for(let i=0;i<10;i++){a.advance(LONG);a.click('skip');}a.set('rounds',5);a.E.retry.onclick();eq(a.M.sess.items.length,10);});
 test('results: practice my misses has each miss once',()=>{const a=boot();a.set('rounds',10);a.set('kind','letters');a.click('start');const want=a.M.sess.items.slice().sort().join();for(let i=0;i<10;i++){a.advance(LONG);a.click('skip');}a.E.retry.onclick();eq(a.M.sess.items.slice().sort().join(),want);});
+test('settings: broken saved slider values fall back to normal',()=>{const a=boot({wpm:'abc',pitch:-5,far:99,vol:null,loopv:1});eq(a.M.S.wpm,10);eq(a.M.S.vol,60);eq(a.M.S.pitch,600);eq(a.M.S.far,2);a.click('start');a.advance(LONG);eq(a.plays(),'PLAYED 2 TIMES');ok(isFinite(window.__lastMs));});
+test('settings: good saved slider values are kept',()=>{const a=boot({wpm:18,lenmin:4,lenmax:6,loopv:1});eq(a.M.S.wpm,18);eq(a.M.S.lenmin,4);eq(a.M.S.lenmax,6);});
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
