@@ -203,6 +203,16 @@ test('sound: partner wrong guess and show answer play the wrong sound',()=>{cons
 test('sound: finishing a session plays a longer fanfare ending on the octave',()=>{const a=boot();a.set('rounds',5);a.click('start');for(let i=0;i<4;i++){a.advance(LONG);a.click('skip');}a.advance(LONG);a.answer(a.word());const n0=__oscs.length;a.advance(1300);eq(a.M.sess,null);const c=chimes(n0);ok(c.length>=5,'notes '+c.length);eq(semis(c[c.length-1].o.frequency.value,a.M.S.pitch),12);for(let i=1;i<c.length;i++)ok(c[i].o.t>=c[i-1].o.end,'overlap');});
 test('sound: ending a session early plays no fanfare',()=>{const a=boot();a.click('start');a.advance(LONG);a.click('skip');const n0=__oscs.length;a.click('quit');eq(chimes(n0).length,0);});
 
+/* ---------- fading Yay text ---------- */
+const yayShown=a=>/class="[^"]*\byay\b/.test(a.E.feedback.innerHTML);
+const yayGone=a=>/class="[^"]*\byay\b[^"]*\bgone\b/.test(a.E.feedback.innerHTML);
+test('fade: Yay text fades out 3 seconds after a right answer',()=>{const a=boot();a.click('start');a.advance(LONG);a.answer(a.word());ok(yayShown(a)&&!yayGone(a),'shown');a.advance(2900);ok(yayShown(a)&&!yayGone(a),'still there at 2.9s');a.advance(200);ok(yayGone(a),'faded at 3.1s');});
+test('fade: countdown ticks do not bring it back',()=>{const a=boot();a.click('start');a.advance(LONG);a.answer(a.word());a.advance(3500);ok(yayGone(a));ok(a.fb().includes('next word in 1'),'countdown still shows');});
+test('fade: the code meaning stays visible',()=>{const a=boot();a.set('kind','codes');a.click('start');a.advance(LONG);const w=a.word();a.answer(w);a.advance(3200);ok(yayGone(a));ok(/class="mean"/.test(a.E.feedback.innerHTML)&&a.fb().includes(w+' means:'),'meaning gone');});
+test('fade: partner they got it fades too',()=>{const a=boot();a.mode('partner');a.click('start');a.advance(LONG);a.click('gotit');ok(yayShown(a)&&!yayGone(a));a.advance(3100);ok(yayGone(a));});
+test('fade: a new right answer gets its own 3 seconds',()=>{const a=boot();a.click('start');a.advance(LONG);a.answer(a.word());a.advance(1300);a.answer(a.word());a.advance(1800);ok(yayShown(a)&&!yayGone(a),'faded early by the old timer');a.advance(1300);ok(yayGone(a));});
+test('fade: CSS fades smoothly to invisible',()=>{const css=PAGE.match(/<style>([\s\S]*?)<\/style>/)[1];ok(/\.yay\{[^}]*transition:[^}]*opacity/.test(css),'no transition');ok(/\.gone\{[^}]*opacity:0/.test(css),'no opacity 0');});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
