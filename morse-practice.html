@@ -415,6 +415,7 @@ function keyUp(){if(downAt===null)return;var dur=performance.now()-downAt;downAt
   upTimer=setTimeout(endLetter,unitMs()*3.5);}
 function endLetter(){if(!syms)return;var ch=REV[syms];if(!ch&&PRO_REV[syms]){ch=PRO_REV[syms];sendJoined=true;}ch=ch||'?';letters+=ch;syms='';$('senddec').textContent=letters;$('sendraw').textContent='';
   if(letters.length>=sendTarget.length){sendDone=true;$('sendfb').innerHTML=letters===sendTarget&&sendKind==='prosigns'&&!sendJoined?'<span class="no">Close! Send '+esc(sendTarget)+' with no gap between the letters.</span>':letters===sendTarget?'<span class="ok">✓ You sent '+esc(sendTarget)+'!</span>'+meanHTML(sendTarget,sendKind):'<span class="no">You sent '+esc(letters)+'. Try again, or tap Show the code.</span>';}}
+function keyReset(){if(downAt===null)return;downAt=null;toneOff();$('key').classList.remove('down');$('lamp').classList.remove('on');}
 var key=$('key');
 key.addEventListener('pointerdown',function(e){e.preventDefault();try{key.setPointerCapture(e.pointerId);}catch(err){}keyDown();});
 ['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){key.addEventListener(ev,keyUp);});
@@ -426,7 +427,7 @@ $('sendnext').addEventListener('click',newSend);
 newSend();
 
 /* ---------- tabs ---------- */
-$('tabs').addEventListener('click',function(e){var b=e.target.closest('[data-t]');if(!b)return;stopPlay();
+$('tabs').addEventListener('click',function(e){var b=e.target.closest('[data-t]');if(!b)return;stopPlay();keyReset();
   document.querySelectorAll('.tab[data-t]').forEach(function(t){t.setAttribute('aria-selected',String(t===b));});
   var t=b.dataset.t;if(t==='practice'){show(sess?'session':'setup');resumeRound();}else show(t);
   if(t==='send'){$('send').insertBefore($('lamp'),$('send').querySelector('.stage'));}

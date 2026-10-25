@@ -3,7 +3,7 @@
 const fs=require('fs');
 // the app's code is the last <script> in the page
 const APP_JS=[...fs.readFileSync(__dirname+'/morse-practice.html','utf8').matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
-const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},noteMistake:noteMistake,weightOf:weightOf};').replace('return (t-start)*1000;}','window.__lastMs=(t-start)*1000;return window.__lastMs;}');
+const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('return (t-start)*1000;}','window.__lastMs=(t-start)*1000;return window.__lastMs;}');
 const noop=()=>{};
 function boot(saved){
   const E={},H={};let now=0,tid=0,timers=[];const store={};if(saved)store['morse-practice-v1']=JSON.stringify(saved);
@@ -164,6 +164,9 @@ test('settings: odd saved times and tries are fixed',()=>{let a=boot({reps:9,tri
 test('partner: auto play off, wrong guess says tap Play',()=>{const a=boot();a.check('autoplay',false);a.mode('partner');a.click('start');a.click('addguess');ok(a.fb().includes('Tap Play'));a.advance(60000);eq(a.plays(),'PLAYED 0 TIMES');});
 test('partner: auto play on, wrong guess says here it comes',()=>{const a=boot();a.mode('partner');a.click('start');a.advance(LONG);a.click('addguess');ok(a.fb().includes('Here it comes again'));});
 
+test('send: leaving the tab while the key is held lets go of it',()=>{const a=boot();a.tab('send');a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(100);a.tab('chart');eq(a.M.downAt,null);});
+test('send: after coming back, a quick tap is a dot (E)',()=>{const a=boot();a.tab('send');a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(100);a.tab('chart');a.advance(5000);a.tab('send');a.click('sendclear');
+  a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(50);a.H.key.pointerup();a.advance(1000);eq(a.E.senddec.textContent.slice(-1),'E');});
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
