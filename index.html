@@ -210,6 +210,12 @@ var WORDS=('at,be,go,hi,in,is,it,me,my,no,on,so,to,up,us,we,'+
  'airplane,backpack,bluebird,building,calendar,dinosaur,elephant,firework,football,frosting,hedgehog,hospital,kangaroo,lollipop,mountain,notebook,peaceful,pineapple,question,sandwich,sapphire,scissors,starfish,sunshine,treasure,umbrella,waterfall,'+
  'adventure,astronaut,blueberry,butterfly,chocolate,crocodile,fireplace,hurricane,lightning,raspberry,snowflake,telescope,tomorrow,underwater,watermelon,'+
  'basketball,blackberry,friendship,lighthouse,strawberry,toothbrush,trampoline').split(',').map(function(w){return w.toUpperCase();});
+/* more words: everyday words, words heard in a real QSO, and place names. repeats of earlier words are dropped */
+function upWords(s){return s.split(',').map(function(w){return w.toUpperCase();});}
+var COMMON_WORDS=upWords('today,family,water,people,monday,tuesday,wednesday,thursday,friday,saturday,sunday,number,letter,little,about,there,where,because,world,money,paper,pencil,dinner,lunch,coffee,green,black,white,brown,street,evening,week,month,year,autumn,spring,sister,brother,mother,father,baby,birthday,answer,simple,easy,quick');
+var QSO_WORDS=upWords('rig,antenna,dipole,vertical,yagi,beam,tower,coax,tuner,key,paddle,keyer,straight,power,watts,battery,solar,portable,mobile,station,shack,band,meters,frequency,signal,static,noise,fading,strong,weak,loud,copy,solid,report,readable,tone,weather,cloudy,rainy,windy,foggy,humid,degrees,overcast,operator,ham,license,callsign,novice,general,extra,club,contest,contact,ragchew,thanks,regards,wishes,cheers,retired,engineer,roger,over,standby,repeat,spell,listen,speed');
+var PLACES=upWords('texas,ohio,alaska,florida,hawaii,maine,utah,oregon,vermont,california,jersey,trenton,newark,canada,mexico,brazil,japan,china,india,france,spain,italy,germany,ireland,england,egypt,australia,london,paris,tokyo,berlin,rome,sydney,toronto,chicago,boston,dublin,cairo');
+WORDS=WORDS.concat(COMMON_WORDS,QSO_WORDS,PLACES).filter(function(w,i,all){return all.indexOf(w)===i;});
 var LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),DIGITS='0123456789'.split('');
 var CODES='QSO,QTH,QRZ,QRM,QRN,QSL,QSY,QRT,QRS,QRQ,QRV,QSB,QRP,QRX,QRL,CQ,DE,73,88,RST,599,TNX,TU,FB,OM,YL,ES,HR,UR,WX,ANT,RIG,PSE,AGN,BK,GM,GA,GE,GN,CUL,OP,NAME,SRI,HW'.split(',');
 var MEANING={QSO:'a contact (talking with another station)',QTH:'my location',QRZ:'who is calling me?',QRM:'interference from other stations',QRN:'static noise, like from storms',

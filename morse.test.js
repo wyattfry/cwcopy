@@ -4,7 +4,7 @@ const fs=require('fs');
 // the app's code is the last <script> in the page
 const PAGE=fs.readFileSync(__dirname+'/index.html','utf8');
 const APP_JS=[...PAGE.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
-const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get WORDS(){return WORDS},get QSO_WORDS(){return typeof QSO_WORDS!=="undefined"?QSO_WORDS:[]},get PLACES(){return typeof PLACES!=="undefined"?PLACES:[]},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('function play(text,slowFactor,joined){','function play(text,slowFactor,joined){return window.__lastMs=play0.apply(this,arguments);}\nfunction play0(text,slowFactor,joined){');
+const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get WORDS(){return WORDS},get COMMON_WORDS(){return typeof COMMON_WORDS!=="undefined"?COMMON_WORDS:[]},get QSO_WORDS(){return typeof QSO_WORDS!=="undefined"?QSO_WORDS:[]},get PLACES(){return typeof PLACES!=="undefined"?PLACES:[]},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('function play(text,slowFactor,joined){','function play(text,slowFactor,joined){return window.__lastMs=play0.apply(this,arguments);}\nfunction play0(text,slowFactor,joined){');
 const noop=()=>{};
 function boot(saved){
   const E={},H={};let now=0,tid=0,timers=[];const store={};if(saved)store['morse-practice-v1']=JSON.stringify(saved);
@@ -280,8 +280,15 @@ test('steady: phones save more room where text wraps',()=>{['#feedback','#codebo
 test('steady: the code text shrinks on narrow screens',()=>{ok(/font-size:clamp\(/.test(rule(CSS(),'#codebox')),'no clamp');});
 
 /* ---------- word pool ---------- */
+test('words: at least 100 new words on top of the 322 before',()=>{const a=boot();ok(a.M.WORDS.length>=422,'only '+a.M.WORDS.length);});
+test('words: the new words mix common words, QSO words and place names',()=>{const a=boot();const c=a.M.COMMON_WORDS,q=a.M.QSO_WORDS,p=a.M.PLACES;ok(c.length>=20,'common '+c.length);ok(q.length>=20,'QSO '+q.length);ok(p.length>=20,'places '+p.length);
+  ['RIG','ANTENNA','PADDLE','WEATHER','CLOUDY','POWER','WATTS','COPY','REPORT','THANKS','HAM','CONTACT','BAND','LICENSE','STATION'].forEach(w=>ok(q.includes(w),'QSO missing '+w));
+  ['TODAY','FAMILY','WATER','PEOPLE','FRIDAY'].forEach(w=>ok(c.includes(w),'common missing '+w));});
+test('words: places include US states, countries and big world cities',()=>{const a=boot();['TEXAS','OHIO','JERSEY','TRENTON','CANADA','JAPAN','LONDON','TOKYO'].forEach(w=>ok(a.M.PLACES.includes(w),'missing '+w));});
+test('words: all the new lists are in the practice pool',()=>{const a=boot();[...a.M.COMMON_WORDS,...a.M.QSO_WORDS,...a.M.PLACES].forEach(w=>ok(a.M.WORDS.includes(w),w));});
 test('words: no word is listed twice',()=>{const a=boot();const seen=new Set();a.M.WORDS.forEach(w=>{ok(!seen.has(w),'twice: '+w);seen.add(w);});});
 test('words: every word is plain letters, 2 to 10 long (the length slider range)',()=>{const a=boot();a.M.WORDS.forEach(w=>ok(/^[A-Z]{2,10}$/.test(w),'bad word '+w));});
+test('words: long place names show up when you pick long lengths',()=>{const a=boot();a.set('lenmax',10);a.set('lenmin',8);a.set('rounds',30);let seen=false;for(let k=0;k<10&&!seen;k++){a.click('start');seen=a.M.sess.items.some(w=>a.M.PLACES.includes(w));a.click('quit');a.click('again');}ok(seen);});
 
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
