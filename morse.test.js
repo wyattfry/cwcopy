@@ -241,6 +241,20 @@ test('stop: no more plays after a right answer',()=>{const a=boot();midPlay(a);a
 test('stop: the right-answer chime is not cut off',()=>{const a=boot();midPlay(a);const n0=__oscs.length;a.answer(a.word());const c=__oscs.slice(n0);ok(c.length===3);a.advance(1000);c.forEach(o=>eq(o.cut,undefined));});
 test('stop: partner they got it cuts off the word too',()=>{const a=boot();a.mode('partner');const play=midPlay(a);a.click('gotit');play.forEach(o=>ok(o.cut!==undefined));});
 
+/* ---------- lamp follows the sound ---------- */
+// tones of the first play as [start,end] on the audio clock (a beep's sound ends 20ms before its oscillator stops)
+function firstPlayTones(a){a.click('start');a.advance(2600);const n0=__oscs.length;a.advance(150);return __oscs.slice(n0).filter(o=>o.type==='sine').map(o=>[o.t,o.end-0.02]);}
+// wall time (ms) at which audio time T is heard: the clock starts __acDelay ms late, and output adds __acLatency s
+const heardAt=T=>(T+__acLatency)*1000+__acDelay;
+function goTo(a,ms){a.advance(Math.max(0,ms-performance.now()));}
+function checkLampMatchesSound(a,tones){ok(tones.length>2,'no tones');tones.forEach((x,i)=>{goTo(a,heardAt((x[0]+x[1])/2));ok(a.E.lamp.classes.has('on'),'lamp off during beep '+i);
+  if(i<tones.length-1){goTo(a,heardAt((x[1]+tones[i+1][0])/2));ok(!a.E.lamp.classes.has('on'),'lamp on during gap '+i);}});}
+test('lamp: on during every beep and off between them',()=>{const a=boot();checkLampMatchesSound(a,firstPlayTones(a));});
+test('lamp: waits for a sound system that wakes up late (new game)',()=>{const a=boot();__acDelay=3500;checkLampMatchesSound(a,firstPlayTones(a));});
+test('lamp: allows for output delay (like Bluetooth)',()=>{const a=boot();__acLatency=0.25;checkLampMatchesSound(a,firstPlayTones(a));});
+test('lamp: flash setting off keeps it dark while the sound plays',()=>{const a=boot();a.check('flash',false);const tones=firstPlayTones(a);ok(tones.length>2);let lit=false;for(let i=0;i<200;i++){a.advance(10);if(a.E.lamp.classes.has('on'))lit=true;}ok(!lit);});
+test('lamp: off once the word has been heard',()=>{const a=boot();const tones=firstPlayTones(a);goTo(a,heardAt(tones[tones.length-1][1])+100);ok(!a.E.lamp.classes.has('on'));});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});

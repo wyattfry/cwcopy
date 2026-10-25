@@ -241,16 +241,24 @@ var AC=null,playing=null;
 function ctx(){if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C();}if(AC&&AC.state!=='running'&&AC.resume)AC.resume();return AC;}
 document.addEventListener('pointerdown',function(){if(AC&&AC.state!=='running'&&AC.resume)AC.resume();},true);
 function toCode(text,k){if(k==='prosigns')return text.split('').map(function(ch){return MORSE[ch]||'';}).join('');return text.split(' ').map(function(w){return w.split('').map(function(ch){return MORSE[ch]||'';}).filter(Boolean).join(' ');}).join(' / ');}
-function stopPlay(){if(typeof againT!=='undefined')clearTimeout(againT);if(typeof cdT!=='undefined'&&cdT){clearTimeout(cdT);cdT=null;}if(playing){playing.forEach(function(t){clearTimeout(t);});playing.o.forEach(function(o){try{o.stop();}catch(e){}});}playing=null;$('lamp').classList.remove('on');}
+function stopPlay(){if(typeof againT!=='undefined')clearTimeout(againT);if(typeof cdT!=='undefined'&&cdT){clearTimeout(cdT);cdT=null;}if(playing){playing.oscs.forEach(function(o){try{o.stop();}catch(e){}});}playing=null;$('lamp').classList.remove('on');}
+/* The Morse controller: one schedule of tones ([start, length] in seconds) timed by the audio clock.
+   Two views follow the same schedule and clock: the speaker (oscillators) and the lamp (redrawn every frame). */
+function schedule(text,slowFactor,joined){var unit=1.2/S.wpm*(slowFactor||1),extra=unit*S.far*1.5,t=0,tones=[];
+  text.split(' ').forEach(function(w,wi,words){w.split('').forEach(function(ch,ci){var code=MORSE[ch]||'';code.split('').forEach(function(sym,si){var len=sym==='.'?unit:unit*3;tones.push([t,len]);t+=len;if(si<code.length-1)t+=unit;});if(ci<w.length-1)t+=joined?unit:unit*3+extra;});if(wi<words.length-1)t+=unit*7+extra*2;});
+  return {tones:tones,total:t};}
+function audioNow(){return AC?AC.currentTime:performance.now()/1000;}
+/* what the listener hears right now: the audio clock minus the time sound takes to reach the speakers */
+function heardNow(){return audioNow()-(AC&&(AC.outputLatency||AC.baseLatency)||0);}
+var frame=window.requestAnimationFrame?function(f){window.requestAnimationFrame(f);}:function(f){setTimeout(f,16);};
 /* plays text; slowFactor > 1 makes it slower; returns total ms */
-function play(text,slowFactor,joined){stopPlay();var a=ctx();slowFactor=slowFactor||1;
-  var unit=1.2/S.wpm*slowFactor,extra=unit*S.far*1.5,t=a?a.currentTime+0.08:0,start=t,timers=[],oscs=[];
-  function beep(len){if(a){var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=S.pitch;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(S.vol/100*.5,t+.005);g.gain.setValueAtTime(S.vol/100*.5,t+len-.005);g.gain.linearRampToValueAtTime(0,t+len);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.02);oscs.push(o);}
-    if(S.flash){var on=(t-start+0.08)*1000,off=on+len*1000;timers.push(setTimeout(function(){$('lamp').classList.add('on');},on));timers.push(setTimeout(function(){$('lamp').classList.remove('on');},off));}
-    t+=len;}
-  var words=text.split(' ');
-  words.forEach(function(w,wi){w.split('').forEach(function(ch,ci){var code=MORSE[ch]||'';code.split('').forEach(function(sym,si){beep(sym==='.'?unit:unit*3);if(si<code.length-1)t+=unit;});if(ci<w.length-1)t+=joined?unit:unit*3+extra;});if(wi<words.length-1)t+=unit*7+extra*2;});
-  timers.o=oscs;playing=timers;return (t-start)*1000;}
+function play(text,slowFactor,joined){stopPlay();var a=ctx(),sc=schedule(text,slowFactor,joined),t0=audioNow()+0.08,oscs=[],v=S.vol/100*.5;
+  if(a)sc.tones.forEach(function(x){var t=t0+x[0],len=x[1],o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=S.pitch;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.005);g.gain.setValueAtTime(v,t+len-.005);g.gain.linearRampToValueAtTime(0,t+len);
+    o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+len+.02);oscs.push(o);});
+  var p=playing={t0:t0,tones:sc.tones,total:sc.total,oscs:oscs};lampView(p);return sc.total*1000;}
+function lampView(p){if(p!==playing)return;var at=heardNow()-p.t0,on=!!S.flash&&p.tones.some(function(x){return at>=x[0]&&at<x[0]+x[1];});
+  $('lamp').classList.toggle('on',on);if(at<p.total+0.05)frame(function(){lampView(p);});else $('lamp').classList.remove('on');}
 /* answer sounds: quiet sine notes, one at a time, all with the same quick-attack envelope.
    each note is [semitones from your pitch, seconds, gap after] */
 var SOUNDS={right:[[0,.09],[4,.09],[7,.18]],
