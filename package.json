@@ -1,5 +1,5 @@
 {
-  "name": "morse-practice",
+  "name": "cwcopy",
   "private": true,
   "scripts": { "test": "node morse.test.js" }
 }

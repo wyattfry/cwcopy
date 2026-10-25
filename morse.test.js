@@ -220,6 +220,12 @@ test('fade: partner they got it fades too',()=>{const a=boot();a.mode('partner')
 test('fade: a new right answer gets its own 3 seconds',()=>{const a=boot();a.click('start');a.advance(LONG);a.answer(a.word());a.advance(1300);a.answer(a.word());a.advance(1800);ok(yayShown(a)&&!yayGone(a),'faded early by the old timer');a.advance(1300);ok(yayGone(a));});
 test('fade: CSS fades smoothly to invisible',()=>{const css=PAGE.match(/<style>([\s\S]*?)<\/style>/)[1];ok(/\.yay\{[^}]*transition:[^}]*opacity/.test(css),'no transition');ok(/\.gone\{[^}]*opacity:0/.test(css),'no opacity 0');});
 
+/* ---------- name ---------- */
+test('name: page title and heading say CW Copy',()=>{ok(/<title>CW Copy<\/title>/.test(PAGE),'title');ok(/<h1>CW Copy<\/h1>/.test(PAGE),'heading');});
+test('name: the Morse under the heading spells CW COPY',()=>{const sub=PAGE.match(/<p class="sub">([^<]*)<\/p>/)[1];const REV={};Object.entries(MC).forEach(([k,v])=>REV[v]=k);eq(sub.split(' / ').map(w=>w.split(' ').map(c=>REV[c]).join('')).join(' '),'CW COPY');});
+test('name: saved progress key is unchanged, so nobody loses their history',()=>{ok(APP_JS.includes("KEY='morse-practice-v1'"));});
+test('name: package is called cwcopy',()=>{eq(JSON.parse(require('fs').readFileSync(__dirname+'/package.json','utf8')).name,'cwcopy');});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});
