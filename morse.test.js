@@ -270,6 +270,15 @@ test('pie: leaving the tab removes it, coming back starts it full',()=>{const a=
 test('pie: ending the session removes it',()=>{const a=boot();a.click('start');a.advance(500);a.click('quit');ok(!pieOn(a));a.advance(100);ok(!pieOn(a));});
 test('pie: CSS draws it as a conic-gradient wedge from --p',()=>{const css=PAGE.match(/<style>([\s\S]*?)<\/style>/)[1];ok(/\.lamp\.pie\{[^}]*conic-gradient\([^}]*var\(--p/.test(css));});
 
+/* ---------- steady game area ---------- */
+const CSS=()=>PAGE.match(/<style>([\s\S]*?)<\/style>/)[1];
+const rule=(css,sel)=>{const at=css.indexOf(sel+'{');if(at<0)return '';const from=at+sel.length+1;return css.slice(from,css.indexOf('}',from));};
+const narrow=()=>{const m=/@media \(max-width:600px\)\{([\s\S]*?\})\}/.exec(CSS());return m?m[1]:'';};
+test('steady: the game stage has a minimum height (desktop and phone)',()=>{ok(/min-height:\d/.test(rule(CSS(),'#session>.stage')),'desktop');ok(/min-height:\d/.test(rule(narrow(),'#session>.stage')),'phone');});
+test('steady: room is saved for the message, hint, code and guess lines',()=>{['#feedback','#hintline','#codebox','#guesslist'].forEach(s=>ok(/min-height:\d/.test(rule(CSS(),s)),s));});
+test('steady: phones save more room where text wraps',()=>{['#feedback','#codebox','#guesslist'].forEach(s=>ok(/min-height:\d/.test(rule(narrow(),s)),s));});
+test('steady: the code text shrinks on narrow screens',()=>{ok(/font-size:clamp\(/.test(rule(CSS(),'#codebox')),'no clamp');});
+
 /* ---------- read solo ---------- */
 test('read: code hidden during countdown, shown after, no sound',()=>{const a=boot();a.mode('read');a.click('start');eq(a.E.codebox.innerHTML,'');ok(a.fb().includes('Here comes'));a.advance(LONG);ok(a.E.codebox.innerHTML.length>0);eq(a.plays(),'PLAYED 0 TIMES');});
 test('read: wrong says look again (not listen)',()=>{const a=boot();a.mode('read');a.click('start');a.advance(LONG);a.answer('ZZZZZ');ok(a.fb().includes('Look at the code again'));eq(a.plays(),'PLAYED 0 TIMES');});

@@ -47,6 +47,14 @@ input[type=range]{width:100%;accent-color:var(--brass)}
 .code .gap{display:inline-block;width:.8em}
 .word{font:700 40px/1.1 var(--disp);letter-spacing:3px}
 .hint{color:var(--muted);font-size:15px}
+/* steady game area: the parts that come and go keep their room, so nothing moves during a game */
+#session>.stage{min-height:630px}
+#feedback{min-height:6.2em}
+#hintline{min-height:1.5em}
+#codebox{font-size:clamp(20px,6vw,34px);min-height:2.6em}
+#guesslist{min-height:1.5em}
+@media (max-width:600px){#session>.stage{min-height:740px}#feedback{min-height:10em}#codebox{min-height:3.9em}#guesslist{min-height:3em}}
+/* end steady */
 [hidden]{display:none!important}
 .yay{transition:opacity .8s ease}
 .gone{opacity:0}
