@@ -2,7 +2,7 @@
 // Each test boots a fresh copy of the app with a fake page and a fake clock.
 const fs=require('fs');
 // the app's code is the last <script> in the page
-const PAGE=fs.readFileSync(__dirname+'/morse-practice.html','utf8');
+const PAGE=fs.readFileSync(__dirname+'/index.html','utf8');
 const APP_JS=[...PAGE.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()[1];
 const SRC=APP_JS.replace('(function(){','(function(){window.__m={get sess(){return sess},get S(){return S},get downAt(){return downAt},noteMistake:noteMistake,weightOf:weightOf};').replace('return (t-start)*1000;}','window.__lastMs=(t-start)*1000;return window.__lastMs;}');
 const noop=()=>{};
@@ -123,8 +123,8 @@ test('send: numbers mode sends numbers, letters sends a letter',()=>{let a=boot(
 test('send: words mode respects word lengths',()=>{const a=boot();a.set('lenmin',6);a.set('lenmax',6);a.tab('send');for(let i=0;i<10;i++){a.click('sendnext');eq(a.E.sendword.textContent.length,6);}});
 test('send: word ANT sent right shows no antenna meaning',()=>{const a=boot();a.tab('send');ok(!/means/.test(a.E.sendfb.textContent));});
 
-test('page: hidden things really stay hidden (CSS rule)',()=>{ok(/\[hidden\]\{display:none!important\}/.test(require('fs').readFileSync(__dirname+'/morse-practice.html','utf8')));});
-test('page: says it is UTF-8 so symbols show right',()=>{ok(/<meta charset="utf-8">/i.test(require('fs').readFileSync(__dirname+'/morse-practice.html','utf8')));});
+test('page: hidden things really stay hidden (CSS rule)',()=>{ok(/\[hidden\]\{display:none!important\}/.test(require('fs').readFileSync(__dirname+'/index.html','utf8')));});
+test('page: says it is UTF-8 so symbols show right',()=>{ok(/<meta charset="utf-8">/i.test(require('fs').readFileSync(__dirname+'/index.html','utf8')));});
 /* ---------- prosigns ---------- */
 const MC={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
 const PROS=['AR','AS','BT','KA','KN','SK','SN','HH','SOS'];
@@ -174,7 +174,7 @@ test('partner: auto play on, wrong guess says here it comes',()=>{const a=boot()
 test('send: leaving the tab while the key is held lets go of it',()=>{const a=boot();a.tab('send');a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(100);a.tab('chart');eq(a.M.downAt,null);});
 test('send: after coming back, a quick tap is a dot (E)',()=>{const a=boot();a.tab('send');a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(100);a.tab('chart');a.advance(5000);a.tab('send');a.click('sendclear');
   a.H.key.pointerdown({preventDefault:noop,pointerId:1});a.advance(50);a.H.key.pointerup();a.advance(1000);eq(a.E.senddec.textContent.slice(-1),'E');});
-test('page: every CSS color token used is defined',()=>{const html=require('fs').readFileSync(__dirname+'/morse-practice.html','utf8');const used=new Set([...html.matchAll(/var\((--[\w-]+)/g)].map(m=>m[1]));const defined=new Set([...html.matchAll(/(--[\w-]+)\s*:/g)].map(m=>m[1]));[...used].forEach(v=>ok(defined.has(v),'undefined '+v));});
+test('page: every CSS color token used is defined',()=>{const html=require('fs').readFileSync(__dirname+'/index.html','utf8');const used=new Set([...html.matchAll(/var\((--[\w-]+)/g)].map(m=>m[1]));const defined=new Set([...html.matchAll(/(--[\w-]+)\s*:/g)].map(m=>m[1]));[...used].forEach(v=>ok(defined.has(v),'undefined '+v));});
 test('results: says per round, not per word',()=>{const a=boot();a.set('kind','letters');a.set('rounds',5);a.click('start');for(let i=0;i<5;i++){a.advance(LONG);a.click('skip');}ok(a.E.scorenote.textContent.includes('per round'));});
 test('audio: interrupted sound (iPad) is woken up when playing',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.state='interrupted';__ac.resumed=false;a.click('play');ok(__ac.resumed);});
 test('audio: any tap wakes up interrupted sound',()=>{const a=boot();a.click('start');a.advance(LONG);__ac.state='interrupted';__ac.resumed=false;a.DH.pointerdown({});ok(__ac.resumed);});
